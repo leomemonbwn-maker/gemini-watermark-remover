@@ -1,6 +1,6 @@
 # Gemini Watermark Remover
 
-[![Live Demo](https://img.shields.io/badge/demo-remove--watermark.pages.dev-success?style=flat-square&logo=cloudflare&logoColor=white)](https://remove-watermark.pages.dev)
+[![Live Demo](https://img.shields.io/badge/demo-remove--watermark.mlaas.in-success?style=flat-square&logo=cloudflare&logoColor=white)](https://remove-watermark.mlaas.in)
 [![Stack](https://img.shields.io/badge/tech-HTML%20%7C%20JS%20%7C%20Tailwind-3B82F6?style=flat-square)](https://github.com/dearabhin/gemini-watermark-remover)
 [![License](https://img.shields.io/badge/license-MIT-orange?style=flat-square)](LICENSE)
 
