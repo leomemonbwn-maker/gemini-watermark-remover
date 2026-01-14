@@ -23,7 +23,7 @@ export class WatermarkEngine {
             ]);
             return new WatermarkEngine(bg48, bg96);
         } catch (e) {
-            console.error("Failed to load assets. Ensure assets/bg_48.png exists.");
+            console.error("Failed to load assets.");
             throw e;
         }
     }
@@ -56,10 +56,16 @@ export class WatermarkEngine {
     }
 
     async process(imageFile) {
-        const img = await new Promise((resolve) => {
+        const objectUrl = URL.createObjectURL(imageFile);
+        const img = await new Promise((resolve, reject) => {
             const i = new Image();
-            i.onload = () => resolve(i);
-            i.src = URL.createObjectURL(imageFile);
+            i.onload = () => {
+                // Cleanup the source URL once the image is loaded into memory
+                URL.revokeObjectURL(objectUrl); 
+                resolve(i);
+            };
+            i.onerror = reject;
+            i.src = objectUrl;
         });
 
         const canvas = document.createElement('canvas');
@@ -77,7 +83,7 @@ export class WatermarkEngine {
         ctx.putImageData(imageData, 0, 0);
         
         return {
-            blob: await new Promise(r => canvas.toBlob(r)),
+            blob: await new Promise(r => canvas.toBlob(r, 'image/png')),
             originalSrc: img.src,
             width: img.width,
             height: img.height
