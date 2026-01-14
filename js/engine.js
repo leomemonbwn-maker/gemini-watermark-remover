@@ -56,14 +56,11 @@ export class WatermarkEngine {
     }
 
     async process(imageFile) {
+        // Create URL for processing and UI preview
         const objectUrl = URL.createObjectURL(imageFile);
         const img = await new Promise((resolve, reject) => {
             const i = new Image();
-            i.onload = () => {
-                // Cleanup the source URL once the image is loaded into memory
-                URL.revokeObjectURL(objectUrl); 
-                resolve(i);
-            };
+            i.onload = () => resolve(i); 
             i.onerror = reject;
             i.src = objectUrl;
         });
@@ -84,7 +81,7 @@ export class WatermarkEngine {
         
         return {
             blob: await new Promise(r => canvas.toBlob(r, 'image/png')),
-            originalSrc: img.src,
+            originalSrc: objectUrl, // Passed to app.js to fix the original image preview
             width: img.width,
             height: img.height
         };
