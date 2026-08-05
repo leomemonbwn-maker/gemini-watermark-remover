@@ -31,6 +31,7 @@
   },
   "homepage": "https://gemini-watermark-remover-taupe.vercel.app",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "mediabunny": "^1.49.0",
     "vue": "^3.5.13"
   },

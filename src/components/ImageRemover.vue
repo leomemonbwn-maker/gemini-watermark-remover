@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
+import GeminiAnalyst from './GeminiAnalyst.vue';
 import { cleanFrame } from '../engine/tuner.js';
 import { pointTargetWatermark } from '../engine/detector.js';
 
@@ -151,6 +152,7 @@ async function handleFiles(fileList) {
         viewMode: 'sideBySide',
         sliderPos: 50,
         format: 'png',
+        showAnalyst: false,
       }) - 1;
     const item = items.value[idx];
 
@@ -545,7 +547,15 @@ function reset() {
 
             <!-- Controls bar: Format selector + Download + Copy -->
             <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-2 pt-1 border-t border-black/5 dark:border-white/5">
-              <div class="flex items-center gap-1 text-xs font-semibold text-slate-500">
+              <button
+                @click="item.showAnalyst = !item.showAnalyst"
+                class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-purple-500 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <iconify-icon icon="ph:sparkle-bold" width="14" class="text-purple-500"></iconify-icon>
+                <span>Ask AI</span>
+              </button>
+
+              <div class="flex items-center gap-1 text-xs font-semibold text-slate-500 ml-auto sm:ml-2">
                 <span>Format:</span>
                 <select
                   v-model="item.format"
@@ -575,6 +585,13 @@ function reset() {
                 <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
               </button>
             </div>
+            
+            <GeminiAnalyst 
+              v-if="item.showAnalyst && item.status === 'done'" 
+              :image-src="item.originalSrc" 
+              :image-format="item.format"
+              @close="item.showAnalyst = false"
+            />
           </div>
         </div>
 
