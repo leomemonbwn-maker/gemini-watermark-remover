@@ -32,11 +32,11 @@ function onPointerUp() {
 </script>
 
 <template>
-  <figure v-show="available" class="max-w-xl mx-auto my-8 select-none">
-    <div class="glass-panel p-2.5 rounded-3xl border border-white/60 dark:border-white/10 shadow-2xl">
+  <figure v-show="available" class="max-w-xl mx-auto my-2 sm:my-4 select-none">
+    <div class="p-1 sm:p-2 rounded-2xl sm:rounded-3xl liquid-glass shadow-xl">
       <div
         ref="container"
-        class="group relative w-full aspect-square rounded-2xl overflow-hidden shadow-inner border border-white/40 dark:border-white/10 cursor-ew-resize touch-none"
+        class="group relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden shadow-inner border border-black/5 dark:border-white/10 cursor-ew-resize touch-none"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -64,29 +64,29 @@ function onPointerUp() {
 
         <!-- Labels -->
         <span
-          class="absolute top-3 left-3 text-[11px] font-extrabold px-3 py-1 rounded-full bg-slate-900/70 text-white backdrop-blur-md border border-white/20 shadow-md"
+          class="absolute top-2.5 left-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-900/80 text-white backdrop-blur-md border border-white/20 shadow-md"
           >Before</span
         >
         <span
-          class="absolute top-3 right-3 text-[11px] font-extrabold px-3 py-1 rounded-full bg-indigo-600/80 text-white backdrop-blur-md border border-white/20 shadow-md"
+          class="absolute top-2.5 right-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-600/85 text-white backdrop-blur-md border border-white/20 shadow-md"
           >After</span
         >
 
         <!-- Divider + handle -->
         <div
-          class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(255,255,255,0.8)] pointer-events-none"
+          class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(255,255,255,0.9)] pointer-events-none"
           :style="{ left: `${pos}%` }"
         >
           <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-xl flex items-center justify-center text-indigo-600 border border-white/80"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-2xl flex items-center justify-center text-emerald-600 border border-white/80"
           >
-            <iconify-icon icon="ph:arrows-left-right-bold" width="18"></iconify-icon>
+            <iconify-icon icon="ph:arrows-left-right-bold" width="16" class="sm:w-5 sm:h-5"></iconify-icon>
           </div>
         </div>
       </div>
     </div>
-    <figcaption class="mt-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
-      Drag the slider — watermark removed losslessly, pixel-perfect.
+    <figcaption class="mt-2.5 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium text-center">
+      Drag slider — clean unblending with 100% pixel fidelity.
     </figcaption>
   </figure>
 </template>
