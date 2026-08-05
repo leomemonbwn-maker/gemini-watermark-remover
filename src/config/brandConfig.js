@@ -1,7 +1,7 @@
 export const brandConfig = {
   name: "GemClean AI",
   shortName: "GemClean",
-  domain: "https://gemclean.ai",
+  domain: "https://gemini-watermark-remover-taupe.vercel.app",
   tagline: "100% Free & Private AI Watermark Remover",
   description: "Remove visible AI sparkle watermarks from Gemini images and Veo videos instantly & losslessly in your browser.",
   author: "Leo Memon",
