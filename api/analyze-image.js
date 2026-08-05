@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     // Assuming the base64 string comes with data URI prefix like data:image/jpeg;base64,...
     let base64Data = imageBase64;
