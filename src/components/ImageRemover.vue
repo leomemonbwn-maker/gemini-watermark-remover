@@ -16,7 +16,7 @@ function getEngine() {
 
 const fileInput = ref(null);
 const dragOver = ref(false);
-const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, viewMode, sliderPos, format }
+const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, viewMode, sliderPos, format, isPinning }
 const copiedIdx = ref(-1);
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
@@ -64,7 +64,7 @@ const IMG_PRESETS = [
   {
     id: 'auto',
     label: '✨ 100% AI Auto-Scan',
-    desc: 'Scans full image quadrant to locate watermark position.',
+    desc: 'Scans image margins to locate watermark position.',
     settings: { gain: 1, offsetX: 0, offsetY: 0, sizeScale: 1 },
   },
   {
@@ -151,12 +151,12 @@ async function handleFiles(fileList) {
         viewMode: 'sideBySide',
         sliderPos: 50,
         format: 'png',
+        isPinning: false,
       }) - 1;
     const item = items.value[idx];
 
     try {
-      // Simulate scanning progress UX
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 350));
       const result = await engine.process(file);
 
       item.status = 'done';
@@ -173,12 +173,15 @@ async function handleFiles(fileList) {
   }
 }
 
-// Tap / Click on image to directly point & target watermark location
-async function onImageTap(e, item) {
+// Tap / Click directly on image element to pin watermark location
+async function onImagePinClick(e, item) {
   if (!item || !item.file || !item.width || !item.height) return;
 
-  const targetContainer = e.currentTarget;
-  const imgEl = targetContainer.querySelector('img');
+  // Find exact <img> element clicked
+  let imgEl = e.target;
+  if (imgEl.tagName !== 'IMG') {
+    imgEl = e.currentTarget.querySelector('img');
+  }
   if (!imgEl) return;
 
   const rect = imgEl.getBoundingClientRect();
@@ -187,6 +190,7 @@ async function onImageTap(e, item) {
 
   if (clickX < 0 || clickY < 0 || clickX > rect.width || clickY > rect.height) return;
 
+  // Exact pixel scaling to natural image resolution
   const scaleX = item.width / rect.width;
   const scaleY = item.height / rect.height;
   const tapX = Math.round(clickX * scaleX);
@@ -203,6 +207,7 @@ async function onImageTap(e, item) {
     item.blob = result.blob;
     item.config = result.config;
     item.status = 'done';
+    item.isPinning = false;
   } catch (err) {
     console.error(err);
     item.status = 'done';
@@ -476,13 +481,13 @@ function reset() {
             :key="i"
             class="p-3 sm:p-4 liquid-glass-card rounded-2xl space-y-3"
           >
-            <!-- Card Header: Title + Mode Toggle -->
+            <!-- Card Header: Title + Status + View Toggle -->
             <div class="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2.5">
               <div class="flex items-center gap-2 overflow-hidden">
                 <h3 class="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate">{{ item.displayName }}</h3>
                 
                 <span v-if="item.status === 'done' && item.config" class="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/15 px-2 py-0.5 rounded-full flex-shrink-0">
-                  {{ item.config.isCustomPoint ? `📍 Pointed (${item.config.tappedX}, ${item.config.tappedY})` : '✨ 100% AI Auto-Scanned' }}
+                  {{ item.config.isCustomPoint ? `📍 Pinned (${item.config.tappedX}, ${item.config.tappedY})` : '✨ 100% Auto-Located' }}
                 </span>
               </div>
 
@@ -503,31 +508,35 @@ function reset() {
               </div>
             </div>
 
-            <!-- VIEW MODE 1: Side-by-Side (With Tap-to-Point Watermark Target listener) -->
+            <!-- VIEW MODE 1: Side-by-Side (With Touch-to-Pin Target Listener) -->
             <div v-if="item.viewMode === 'sideBySide'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <!-- Original (Click to point watermark location) -->
-              <div
-                class="liquid-glass-card rounded-xl overflow-hidden cursor-crosshair group relative"
-                title="Tap / Click anywhere on this image to point exact watermark location!"
-                @click="onImageTap($event, item)"
-              >
+              <!-- Original (Tap/Click image directly to pin watermark location) -->
+              <div class="liquid-glass-card rounded-xl overflow-hidden group relative">
                 <div class="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-white/5">
                   <span class="font-bold text-slate-700 dark:text-slate-300 text-[11px] flex items-center gap-1">
-                    <iconify-icon icon="ph:hand-tap-bold" class="text-teal-500"></iconify-icon>
-                    Original (Tap to point)
+                    <iconify-icon icon="ph:map-pin-bold" class="text-teal-500"></iconify-icon>
+                    Original (Tap image to pin)
                   </span>
                   <span v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">{{ item.width }}×{{ item.height }}</span>
                 </div>
 
-                <div class="p-2 checker flex justify-center h-48 sm:h-56 relative overflow-hidden">
+                <div
+                  class="p-2 checker flex justify-center h-48 sm:h-56 relative overflow-hidden cursor-crosshair"
+                  @click="onImagePinClick($event, item)"
+                  title="Click/Tap anywhere on this image to point the watermark location!"
+                >
                   <!-- Scanning animation during loading state -->
-                  <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center">
+                  <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
                     <div class="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent absolute top-0 animate-pulse shadow-[0_0_15px_#00f2fe]"></div>
                     <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-transparent mb-2"></div>
                     <span class="text-xs font-mono font-extrabold text-cyan-300 tracking-wider animate-pulse">🔍 100% AI Scanning...</span>
                   </div>
 
-                  <img v-if="item.originalSrc" :src="item.originalSrc" class="max-h-full object-contain rounded mx-auto select-none pointer-events-none" />
+                  <img
+                    v-if="item.originalSrc"
+                    :src="item.originalSrc"
+                    class="max-h-full object-contain rounded mx-auto select-none transition-transform group-hover:scale-[1.01]"
+                  />
                 </div>
               </div>
 
@@ -566,13 +575,22 @@ function reset() {
               </div>
             </div>
 
-            <!-- Tap-to-Point Banner Tip -->
-            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-[11px] font-medium text-teal-700 dark:text-teal-300">
-              <iconify-icon icon="ph:hand-tap-bold" class="text-sm text-teal-500 flex-shrink-0"></iconify-icon>
-              <span><strong>Tap/Click anywhere on the Original photo</strong> if watermark is in a custom position!</span>
+            <!-- Touch-to-Pin Callout Bar -->
+            <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs font-semibold text-teal-700 dark:text-teal-300">
+              <span class="flex items-center gap-1.5">
+                <iconify-icon icon="ph:crosshair-bold" class="text-base text-teal-500 animate-pulse"></iconify-icon>
+                <span><strong>Touch/Click anywhere on the Original photo</strong> to pin exact watermark target!</span>
+              </span>
+              <button
+                @click="openTunerForItem(item)"
+                class="px-2 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-600 dark:text-teal-300 text-[11px] font-bold transition-all flex items-center gap-1"
+              >
+                <iconify-icon icon="ph:sliders-horizontal-bold"></iconify-icon>
+                Manual Tuner
+              </button>
             </div>
 
-            <!-- Controls bar: Format selector + Download + Re-Tune + Copy -->
+            <!-- Controls bar: Format selector + Download + Copy -->
             <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-2 pt-1 border-t border-black/5 dark:border-white/5">
               <div class="flex items-center gap-1 text-xs font-semibold text-slate-500">
                 <span>Format:</span>
@@ -590,19 +608,10 @@ function reset() {
 
               <button
                 @click="downloadFormatted(item)"
-                class="btn-micro-pop flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
+                class="btn-micro-pop flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
               >
                 <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon>
                 <span>Download {{ item.format.toUpperCase() }}</span>
-              </button>
-
-              <button
-                @click="openTunerForItem(item)"
-                class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
-                title="Adjust watermark position manually"
-              >
-                <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-blue-500"></iconify-icon>
-                <span>Re-Tune</span>
               </button>
 
               <button
