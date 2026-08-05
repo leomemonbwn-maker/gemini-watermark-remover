@@ -16,7 +16,7 @@ function getEngine() {
 
 const fileInput = ref(null);
 const dragOver = ref(false);
-const items = ref([]); // { name, displayName, status, originalSrc, url, blob, width, height }
+const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config }
 const copiedIdx = ref(-1);
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
@@ -58,36 +58,51 @@ onUnmounted(() => {
   window.removeEventListener('paste', handlePaste);
 });
 
-// Advanced "tune-it-yourself" mode (off = default lossless auto removal)
+// Advanced "tune-it-yourself" mode
 const advanced = ref(false);
+
 // Watermark position presets
 const IMG_PRESETS = [
   {
-    id: 'new',
-    label: 'New Gemini images',
-    desc: 'Recent downloads — watermark sits about 128px inside the bottom-right corner.',
-    settings: { gain: 0.6, offsetX: -128, offsetY: -128, sizeScale: 1 },
-  },
-  {
-    id: 'classic',
-    label: 'Classic corner',
-    desc: 'Older images — watermark right in the bottom-right corner.',
+    id: 'auto',
+    label: '✨ Auto-Detect (Smart)',
+    desc: 'Automatically scans corner for Gemini watermark logo position.',
     settings: { gain: 1, offsetX: 0, offsetY: 0, sizeScale: 1 },
   },
+  {
+    id: 'corner32',
+    label: '📐 Standard Corner (32px)',
+    desc: 'Default Gemini output — watermark sits 32px from bottom-right corner.',
+    settings: { gain: 1, offsetX: 32, offsetY: 32, sizeScale: 1 },
+  },
+  {
+    id: 'corner48',
+    label: '📐 Classic Corner (48px)',
+    desc: 'Older or scaled Gemini outputs with 48px padding.',
+    settings: { gain: 1, offsetX: 16, offsetY: 16, sizeScale: 1 },
+  },
+  {
+    id: 'inset',
+    label: '📐 Inset Margin (128px)',
+    desc: 'Gemini web downloads with extra padding inside image.',
+    settings: { gain: 0.8, offsetX: -64, offsetY: -64, sizeScale: 1 },
+  },
 ];
-const presetId = ref('new');
+
+const presetId = ref('auto');
 const currentPreset = computed(() => IMG_PRESETS.find((p) => p.id === presetId.value));
 const tunerActive = ref(false);
-const tunerFrame = ref(null); // { width, height, imageData }
+const tunerFrame = ref(null);
 const tunerBase = ref(null);
 const tunerBgImg = ref(null);
 const tunerName = ref('clean_image.png');
 const tunerOrigSrc = ref('');
-const tunerSettings = reactive({ ...IMG_PRESETS[0].settings });
+const tunerSettings = reactive({ gain: 1, offsetX: 0, offsetY: 0, sizeScale: 1 });
 
-// Switching preset re-seeds the tuner sliders with that preset's settings.
 watch(presetId, () => {
-  Object.assign(tunerSettings, currentPreset.value.settings);
+  if (presetId.value !== 'auto') {
+    Object.assign(tunerSettings, currentPreset.value.settings);
+  }
 });
 
 function openPicker() {
@@ -107,7 +122,7 @@ async function handleFiles(fileList) {
   const valid = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
   if (!valid.length) return;
 
-  reset(); // clear any previous run
+  reset();
 
   let engine;
   try {
@@ -125,6 +140,7 @@ async function handleFiles(fileList) {
   for (const file of valid) {
     const idx =
       items.value.push({
+        file,
         name: `clean_${file.name.replace(/\.[^/.]+$/, '')}.png`,
         displayName: file.name,
         status: 'loading',
@@ -133,13 +149,11 @@ async function handleFiles(fileList) {
         blob: null,
         width: 0,
         height: 0,
+        config: null,
       }) - 1;
     const item = items.value[idx];
 
     try {
-      // Use the proven WatermarkEngine.process() path — it uses correct
-      // geometry for all image sizes (portrait, landscape, square) without
-      // any manual offset guessing.
       const result = await engine.process(file);
 
       item.status = 'done';
@@ -148,6 +162,7 @@ async function handleFiles(fileList) {
       item.blob = result.blob;
       item.width = result.width;
       item.height = result.height;
+      item.config = result.config;
     } catch (err) {
       console.error(err);
       item.status = 'error';
@@ -195,15 +210,23 @@ function loadImageData(file) {
   });
 }
 
-async function startTuner(file, engine) {
+async function startTuner(file, engine, initialConfig = null) {
   try {
     const f = await loadImageData(file);
     tunerOrigSrc.value = f.src;
     tunerFrame.value = { width: f.width, height: f.height, imageData: f.imageData };
-    tunerBase.value = engine.getWatermarkInfo(f.width, f.height);
+    
+    // Set base from engine geometry or initial config
+    const base = initialConfig || engine.getWatermarkInfo(f.width, f.height);
+    tunerBase.value = base;
     tunerBgImg.value = engine.bg96;
     tunerName.value = `clean_${file.name.replace(/\.[^/.]+$/, '')}.png`;
-    Object.assign(tunerSettings, currentPreset.value.settings);
+    
+    tunerSettings.gain = 1;
+    tunerSettings.offsetX = 0;
+    tunerSettings.offsetY = 0;
+    tunerSettings.sizeScale = 1;
+    
     tunerActive.value = true;
   } catch (e) {
     console.error(e);
@@ -211,8 +234,17 @@ async function startTuner(file, engine) {
   }
 }
 
+async function openTunerForItem(item) {
+  if (!item || !item.file) return;
+  const engine = await getEngine();
+  await startTuner(item.file, engine, item.config);
+}
+
 function resetTunerSettings() {
-  Object.assign(tunerSettings, currentPreset.value.settings);
+  tunerSettings.gain = 1;
+  tunerSettings.offsetX = 0;
+  tunerSettings.offsetY = 0;
+  tunerSettings.sizeScale = 1;
 }
 
 async function downloadTuner() {
@@ -256,14 +288,14 @@ function reset() {
           <WatermarkTuner :settings="tunerSettings" :frame="tunerFrame" :bg-img="tunerBgImg" :base="tunerBase" />
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
             Drag the sliders until the watermark disappears in the zoomed corner. The
-            <span class="text-teal-500 font-semibold">blue box</span> shows what gets cleaned.
+            <span class="text-teal-500 font-semibold">teal box</span> shows what gets cleaned.
           </p>
         </div>
         <div class="w-full lg:w-60 flex-shrink-0">
           <div class="liquid-glass-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
             <h2 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Export</h2>
             <label class="block">
-              <div class="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Position preset</div>
+              <div class="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Preset</div>
               <select
                 v-model="presetId"
                 class="w-full text-xs font-semibold liquid-glass-pill rounded-xl px-2.5 py-2 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50 cursor-pointer"
@@ -273,7 +305,7 @@ function reset() {
               <p class="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-1">{{ currentPreset.desc }}</p>
             </label>
             <button @click="resetTunerSettings" class="w-full text-xs font-semibold text-slate-500 hover:text-teal-500 transition-colors">
-              Reset sliders to preset
+              Reset sliders
             </button>
             <button @click="downloadTuner" class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-teal-500/25 transition-all">
               <div class="absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-teal-400"></div>
@@ -330,23 +362,9 @@ function reset() {
         </p>
         <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-500">PNG, JPG, WebP · Multiple files supported</p>
         
-        <!-- Preset Dropdown -->
-        <div class="mt-3 sm:mt-4 flex flex-col items-center gap-1.5" @click.stop>
-          <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
-            <span>Watermark position:</span>
-            <select
-              v-model="presetId"
-              class="text-xs font-semibold liquid-glass-pill rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50 cursor-pointer"
-            >
-              <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
-            </select>
-          </label>
-          <p class="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 max-w-xs leading-normal">{{ currentPreset.desc }}</p>
-        </div>
-
-        <label class="mt-2.5 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer" @click.stop>
+        <label class="mt-3 sm:mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer" @click.stop>
           <input type="checkbox" v-model="advanced" class="accent-teal-500 w-3.5 h-3.5 rounded" />
-          <span>Advanced: tune it yourself</span>
+          <span>Advanced: tune position manually</span>
         </label>
       </div>
       
@@ -371,12 +389,8 @@ function reset() {
             class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 liquid-glass-card rounded-2xl"
           >
             <!-- Original -->
-            <div
-              class="liquid-glass-card rounded-xl overflow-hidden"
-            >
-              <div
-                class="px-3 py-2 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-white/5"
-              >
+            <div class="liquid-glass-card rounded-xl overflow-hidden">
+              <div class="px-3 py-2 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-white/5">
                 <h3 class="font-bold text-slate-700 dark:text-slate-200 text-xs">Original</h3>
                 <div v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">
                   {{ item.width }} × {{ item.height }} px
@@ -392,25 +406,33 @@ function reset() {
 
             <!-- Cleaned -->
             <div
-              class="liquid-glass-card rounded-xl overflow-hidden"
+              class="liquid-glass-card rounded-xl overflow-hidden flex flex-col justify-between"
               :class="item.status === 'done' ? 'border-teal-500/40 ring-1 ring-teal-500/20' : 'border-blue-500/30'"
             >
-              <div
-                class="px-3 py-2 border-b flex items-center gap-1.5"
-                :class="item.status === 'done' ? 'bg-teal-500/10 border-teal-500/20' : 'bg-blue-500/10 border-blue-500/20'"
-              >
-                <template v-if="item.status === 'done'">
-                  <iconify-icon icon="ph:check-circle-fill" width="16" class="text-teal-500"></iconify-icon>
-                  <span class="font-bold text-teal-600 dark:text-teal-400 text-xs">Cleaned</span>
-                </template>
-                <span v-else class="font-bold text-blue-500 text-xs">Removing watermark…</span>
+              <div>
+                <div
+                  class="px-3 py-2 border-b flex items-center justify-between"
+                  :class="item.status === 'done' ? 'bg-teal-500/10 border-teal-500/20' : 'bg-blue-500/10 border-blue-500/20'"
+                >
+                  <template v-if="item.status === 'done'">
+                    <div class="flex items-center gap-1.5">
+                      <iconify-icon icon="ph:check-circle-fill" width="16" class="text-teal-500"></iconify-icon>
+                      <span class="font-bold text-teal-600 dark:text-teal-400 text-xs">Cleaned</span>
+                    </div>
+                    <span v-if="item.config && item.config.detected" class="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/15 px-2 py-0.5 rounded-full">
+                      Auto-Located
+                    </span>
+                  </template>
+                  <span v-else class="font-bold text-blue-500 text-xs">Removing watermark…</span>
+                </div>
+                <div class="p-2 sm:p-3 checker flex justify-center h-48 sm:h-64">
+                  <img v-if="item.status === 'done'" :src="item.url" class="max-h-full object-contain rounded shadow-sm mx-auto" />
+                  <p v-else-if="item.status === 'error'" class="text-xs sm:text-sm font-semibold text-red-500 self-center">Failed to process</p>
+                  <p v-else class="text-xs sm:text-sm font-semibold text-blue-500 self-center">Removing watermark...</p>
+                </div>
               </div>
-              <div class="p-2 sm:p-3 checker flex justify-center h-48 sm:h-64">
-                <img v-if="item.status === 'done'" :src="item.url" class="max-h-full object-contain rounded shadow-sm mx-auto" />
-                <p v-else-if="item.status === 'error'" class="text-xs sm:text-sm font-semibold text-red-500 self-center">Failed to process</p>
-                <p v-else class="text-xs sm:text-sm font-semibold text-blue-500 self-center">Removing watermark...</p>
-              </div>
-              <div v-if="item.status === 'done'" class="p-2.5 sm:p-3 border-t border-teal-500/15 flex gap-2">
+
+              <div v-if="item.status === 'done'" class="p-2.5 sm:p-3 border-t border-teal-500/15 flex flex-wrap gap-2">
                 <button
                   @click="downloadOne(item)"
                   class="btn-micro-pop flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
@@ -418,9 +440,17 @@ function reset() {
                   <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon> Download
                 </button>
                 <button
+                  @click="openTunerForItem(item)"
+                  class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
+                  title="Adjust watermark position manually"
+                >
+                  <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-blue-500"></iconify-icon>
+                  <span>Re-Tune</span>
+                </button>
+                <button
                   @click="copyToClipboard(item, i)"
                   class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
-                  :title="'Copy to clipboard'"
+                  title="Copy to clipboard"
                 >
                   <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-teal-500' : ''"></iconify-icon>
                   <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
