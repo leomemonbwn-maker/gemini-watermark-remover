@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# AI crawler guidance
+Sitemap: https://gemclean.ai/sitemap.xml
+
+# llms.txt location
+# https://gemclean.ai/llms.txt

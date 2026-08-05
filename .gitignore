@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Vite build output
+dist/
+
+# Generated CSS for static SEO pages (built during deploy)
+public/css/output.css
+
+# Logs / misc
+*.log
+.DS_Store
