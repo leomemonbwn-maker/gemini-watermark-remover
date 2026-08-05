@@ -68,7 +68,7 @@ function onPointerUp() {
           >Before</span
         >
         <span
-          class="absolute top-2.5 right-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-600/85 text-white backdrop-blur-md border border-white/20 shadow-md"
+          class="absolute top-2.5 right-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-teal-600/85 text-white backdrop-blur-md border border-white/20 shadow-md"
           >After</span
         >
 
@@ -78,7 +78,7 @@ function onPointerUp() {
           :style="{ left: `${pos}%` }"
         >
           <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-2xl flex items-center justify-center text-emerald-600 border border-white/80"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-2xl flex items-center justify-center text-teal-600 border border-white/80"
           >
             <iconify-icon icon="ph:arrows-left-right-bold" width="16" class="sm:w-5 sm:h-5"></iconify-icon>
           </div>

@@ -25,7 +25,7 @@ function dismiss() {
     role="dialog"
     aria-modal="true"
     aria-label="Support GemClean AI"
-    class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-72 z-50 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden liquid-glass border border-emerald-500/30 support-popup"
+    class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-72 z-50 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden liquid-glass border border-teal-500/30 support-popup"
     :class="{ 'hidden-popup': leaving }"
   >
     <button
@@ -41,7 +41,7 @@ function dismiss() {
         <span class="text-2xl sm:text-3xl" aria-hidden="true">✨</span>
         <div>
           <p class="text-slate-900 dark:text-white font-extrabold text-xs sm:text-sm leading-tight m-0">Love {{ brandConfig.name }}?</p>
-          <p class="text-emerald-500 dark:text-emerald-400 text-[11px] font-semibold m-0">100% Free &amp; Private</p>
+          <p class="text-teal-500 dark:text-teal-400 text-[11px] font-semibold m-0">100% Free &amp; Private</p>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ function dismiss() {
         :href="brandConfig.githubRepo"
         target="_blank"
         rel="noopener noreferrer"
-        class="btn-micro-pop flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white shadow-md shadow-emerald-500/25 bg-gradient-to-r from-emerald-500 to-cyan-500 no-underline"
+        class="btn-micro-pop flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white shadow-md shadow-teal-500/25 bg-gradient-to-r from-teal-500 to-blue-500 no-underline"
       >
         <iconify-icon icon="mdi:github" width="18" aria-hidden="true"></iconify-icon>
         Star on GitHub

@@ -15,7 +15,7 @@ const stages = [
     title: 'Original Gemini Watermark',
     desc: 'Google embeds a ✦ sparkle logo in the corner as an alpha opacity blend layer during AI image generation.',
     icon: 'ph:sparkle-bold',
-    color: 'emerald'
+    color: 'teal'
   },
   {
     id: 2,
@@ -45,7 +45,7 @@ const stages = [
     title: 'Lossless Export Ready',
     desc: 'Your image is restored to pristine original condition. Download clean PNG/MP4 or copy straight to clipboard.',
     icon: 'ph:check-circle-bold',
-    color: 'emerald'
+    color: 'teal'
   }
 ];
 
@@ -328,15 +328,15 @@ onUnmounted(() => {
         <div class="lg:col-span-7 flex flex-col items-center">
           
           <!-- Obsidian Canvas Frame Box -->
-          <div class="relative w-full aspect-square max-w-[440px] bg-[#080C15] rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-emerald-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col justify-between overflow-hidden">
+          <div class="relative w-full aspect-square max-w-[440px] bg-[#080C15] rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-teal-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col justify-between overflow-hidden">
             
             <!-- Top Status Bar -->
             <div class="flex items-center justify-between z-10 text-[10px] sm:text-xs font-mono font-bold">
-              <div class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/50 border border-emerald-500/30 text-emerald-400">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <div class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/50 border border-teal-500/30 text-teal-400">
+                <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
                 <span>60 FPS DISASSEMBLY</span>
               </div>
-              <div class="px-2.5 py-1 rounded-full bg-black/50 border border-cyan-500/30 text-cyan-400">
+              <div class="px-2.5 py-1 rounded-full bg-black/50 border border-blue-500/30 text-blue-400">
                 FRAME {{ Math.min(Math.floor(progress * TOTAL_FRAMES) + 1, TOTAL_FRAMES) }}/{{ TOTAL_FRAMES }}
               </div>
             </div>
@@ -351,7 +351,7 @@ onUnmounted(() => {
 
             <!-- Bottom Progress Pill inside frame -->
             <div class="flex items-center justify-between z-10 text-[10px] sm:text-xs font-mono text-slate-400 px-1">
-              <span class="text-emerald-400 font-bold">STAGE {{ currentStageIndex + 1 }}/4</span>
+              <span class="text-teal-400 font-bold">STAGE {{ currentStageIndex + 1 }}/4</span>
               <span class="font-extrabold text-white">{{ Math.round(progress * 100) }}% RESTORED</span>
             </div>
 
@@ -363,7 +363,7 @@ onUnmounted(() => {
             <!-- Play/Pause Toggle Button -->
             <button
               @click="togglePlay"
-              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 active:scale-95 transition-transform shrink-0"
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-teal-500 to-blue-500 text-white flex items-center justify-center shadow-lg shadow-teal-500/25 active:scale-95 transition-transform shrink-0"
               :aria-label="isPlaying ? 'Pause Simulation' : 'Play Simulation'"
             >
               <iconify-icon :icon="isPlaying ? 'ph:pause-fill' : 'ph:play-fill'" class="text-lg"></iconify-icon>
@@ -373,7 +373,7 @@ onUnmounted(() => {
             <div class="flex-1 flex flex-col justify-center px-1">
               <div class="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                 <span>Original</span>
-                <span class="text-emerald-500 dark:text-emerald-400">Drag to Unblend</span>
+                <span class="text-teal-500 dark:text-teal-400">Drag to Unblend</span>
                 <span>Lossless</span>
               </div>
               <input
@@ -383,7 +383,7 @@ onUnmounted(() => {
                 step="0.5"
                 :value="progress * 100"
                 @input="onSliderInput"
-                class="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 focus:outline-none"
+                class="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-teal-500 focus:outline-none"
               />
             </div>
 
@@ -395,7 +395,7 @@ onUnmounted(() => {
         <div class="lg:col-span-5 flex flex-col gap-2.5 sm:gap-3">
           
           <div class="mb-1">
-            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-500 dark:text-emerald-400">Interactive Breakdown</span>
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-teal-500 dark:text-teal-400">Interactive Breakdown</span>
             <h3 class="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">Deconstruction Steps</h3>
           </div>
 
@@ -407,7 +407,7 @@ onUnmounted(() => {
             :class="[
               'cursor-pointer p-3 sm:p-4 rounded-2xl border transition-all duration-300 relative text-left',
               currentStageIndex === idx
-                ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 translate-x-1'
+                ? 'bg-teal-500/10 dark:bg-teal-500/15 border-teal-500/50 shadow-md shadow-teal-500/10 translate-x-1'
                 : 'bg-white/50 dark:bg-white/5 border-gray-200/60 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/20 hover:bg-white/70 dark:hover:bg-white/10 opacity-75 hover:opacity-100'
             ]"
           >
@@ -416,7 +416,7 @@ onUnmounted(() => {
                 :class="[
                   'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm transition-colors',
                   currentStageIndex === idx
-                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                    ? 'bg-teal-500 text-white shadow-md shadow-teal-500/30'
                     : 'bg-gray-100 dark:bg-gray-800 text-slate-500 dark:text-slate-400'
                 ]"
               >
@@ -428,14 +428,14 @@ onUnmounted(() => {
                   <span
                     :class="[
                       'text-[9px] font-extrabold font-mono uppercase tracking-widest',
-                      currentStageIndex === idx ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                      currentStageIndex === idx ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400 dark:text-slate-500'
                     ]"
                   >
                     {{ stg.tag }}
                   </span>
                   <span
                     v-if="currentStageIndex === idx"
-                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 animate-pulse"
+                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 animate-pulse"
                   >
                     ACTIVE
                   </span>

@@ -256,7 +256,7 @@ function reset() {
           <WatermarkTuner :settings="tunerSettings" :frame="tunerFrame" :bg-img="tunerBgImg" :base="tunerBase" />
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
             Drag the sliders until the watermark disappears in the zoomed corner. The
-            <span class="text-emerald-500 font-semibold">blue box</span> shows what gets cleaned.
+            <span class="text-teal-500 font-semibold">blue box</span> shows what gets cleaned.
           </p>
         </div>
         <div class="w-full lg:w-60 flex-shrink-0">
@@ -266,22 +266,22 @@ function reset() {
               <div class="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Position preset</div>
               <select
                 v-model="presetId"
-                class="w-full text-xs font-semibold liquid-glass-pill rounded-xl px-2.5 py-2 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+                class="w-full text-xs font-semibold liquid-glass-pill rounded-xl px-2.5 py-2 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50 cursor-pointer"
               >
                 <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
               </select>
               <p class="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-1">{{ currentPreset.desc }}</p>
             </label>
-            <button @click="resetTunerSettings" class="w-full text-xs font-semibold text-slate-500 hover:text-emerald-500 transition-colors">
+            <button @click="resetTunerSettings" class="w-full text-xs font-semibold text-slate-500 hover:text-teal-500 transition-colors">
               Reset sliders to preset
             </button>
-            <button @click="downloadTuner" class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-emerald-500/25 transition-all">
-              <div class="absolute inset-0 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-400"></div>
+            <button @click="downloadTuner" class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-teal-500/25 transition-all">
+              <div class="absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-teal-400"></div>
               <div class="relative flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download PNG
               </div>
             </button>
-            <button @click="reset" class="btn-micro-pop w-full py-2.5 liquid-glass-pill text-slate-600 dark:text-slate-300 hover:text-emerald-500 rounded-xl font-bold text-xs sm:text-sm transition-all">
+            <button @click="reset" class="btn-micro-pop w-full py-2.5 liquid-glass-pill text-slate-600 dark:text-slate-300 hover:text-teal-500 rounded-xl font-bold text-xs sm:text-sm transition-all">
               Choose another image
             </button>
           </div>
@@ -295,7 +295,7 @@ function reset() {
       class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] sm:min-h-[16rem] py-6 sm:py-10 px-4 rounded-3xl glass-dropzone transition-all cursor-pointer select-none"
       :class="
         dragOver
-          ? '!border-emerald-500 !bg-emerald-500/10 shadow-2xl scale-[1.01]'
+          ? '!border-teal-500 !bg-teal-500/10 shadow-2xl scale-[1.01]'
           : ''
       "
       role="button"
@@ -310,23 +310,23 @@ function reset() {
     >
       <div class="flex flex-col items-center justify-center relative text-center">
         <div class="relative flex items-center justify-center mb-2.5 sm:mb-3">
-          <div class="absolute inset-0 rounded-full bg-emerald-500/25 animate-ripple"></div>
-          <div class="absolute -inset-1 rounded-full bg-cyan-500/20 animate-pulse-glow"></div>
+          <div class="absolute inset-0 rounded-full bg-teal-500/25 animate-ripple"></div>
+          <div class="absolute -inset-1 rounded-full bg-blue-500/20 animate-pulse-glow"></div>
           <div
             class="relative w-12 h-12 sm:w-16 sm:h-16 liquid-glass-pill rounded-full shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
           >
             <iconify-icon
               icon="ph:upload-simple-bold"
-              class="text-2xl sm:text-3xl text-emerald-500 dark:text-emerald-400 group-hover:text-cyan-400 transition-colors"
+              class="text-2xl sm:text-3xl text-teal-500 dark:text-teal-400 group-hover:text-blue-400 transition-colors"
               aria-hidden="true"
             ></iconify-icon>
           </div>
         </div>
         
         <p
-          class="mb-1 text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-100 group-hover:text-emerald-500 transition-colors tracking-tight px-2"
+          class="mb-1 text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-100 group-hover:text-teal-500 transition-colors tracking-tight px-2"
         >
-          Click to upload, drag images, or <kbd class="px-1.5 py-0.5 text-[10px] sm:text-xs font-mono font-bold liquid-glass-pill rounded text-emerald-600 dark:text-emerald-400">Ctrl + V</kbd> to paste
+          Click to upload, drag images, or <kbd class="px-1.5 py-0.5 text-[10px] sm:text-xs font-mono font-bold liquid-glass-pill rounded text-teal-600 dark:text-teal-400">Ctrl + V</kbd> to paste
         </p>
         <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-500">PNG, JPG, WebP · Multiple files supported</p>
         
@@ -336,7 +336,7 @@ function reset() {
             <span>Watermark position:</span>
             <select
               v-model="presetId"
-              class="text-xs font-semibold liquid-glass-pill rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+              class="text-xs font-semibold liquid-glass-pill rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50 cursor-pointer"
             >
               <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
             </select>
@@ -345,7 +345,7 @@ function reset() {
         </div>
 
         <label class="mt-2.5 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer" @click.stop>
-          <input type="checkbox" v-model="advanced" class="accent-emerald-500 w-3.5 h-3.5 rounded" />
+          <input type="checkbox" v-model="advanced" class="accent-teal-500 w-3.5 h-3.5 rounded" />
           <span>Advanced: tune it yourself</span>
         </label>
       </div>
@@ -385,7 +385,7 @@ function reset() {
               <div class="p-2 sm:p-3 checker flex justify-center h-48 sm:h-64">
                 <img v-if="item.originalSrc" :src="item.originalSrc" class="max-h-full object-contain rounded shadow-sm mx-auto" />
                 <div v-else class="flex items-center justify-center">
-                  <div class="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent"></div>
+                  <div class="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent"></div>
                 </div>
               </div>
             </div>
@@ -393,36 +393,36 @@ function reset() {
             <!-- Cleaned -->
             <div
               class="liquid-glass-card rounded-xl overflow-hidden"
-              :class="item.status === 'done' ? 'border-emerald-500/40 ring-1 ring-emerald-500/20' : 'border-cyan-500/30'"
+              :class="item.status === 'done' ? 'border-teal-500/40 ring-1 ring-teal-500/20' : 'border-blue-500/30'"
             >
               <div
                 class="px-3 py-2 border-b flex items-center gap-1.5"
-                :class="item.status === 'done' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-cyan-500/10 border-cyan-500/20'"
+                :class="item.status === 'done' ? 'bg-teal-500/10 border-teal-500/20' : 'bg-blue-500/10 border-blue-500/20'"
               >
                 <template v-if="item.status === 'done'">
-                  <iconify-icon icon="ph:check-circle-fill" width="16" class="text-emerald-500"></iconify-icon>
-                  <span class="font-bold text-emerald-600 dark:text-emerald-400 text-xs">Cleaned</span>
+                  <iconify-icon icon="ph:check-circle-fill" width="16" class="text-teal-500"></iconify-icon>
+                  <span class="font-bold text-teal-600 dark:text-teal-400 text-xs">Cleaned</span>
                 </template>
-                <span v-else class="font-bold text-cyan-500 text-xs">Removing watermark…</span>
+                <span v-else class="font-bold text-blue-500 text-xs">Removing watermark…</span>
               </div>
               <div class="p-2 sm:p-3 checker flex justify-center h-48 sm:h-64">
                 <img v-if="item.status === 'done'" :src="item.url" class="max-h-full object-contain rounded shadow-sm mx-auto" />
                 <p v-else-if="item.status === 'error'" class="text-xs sm:text-sm font-semibold text-red-500 self-center">Failed to process</p>
-                <p v-else class="text-xs sm:text-sm font-semibold text-cyan-500 self-center">Removing watermark...</p>
+                <p v-else class="text-xs sm:text-sm font-semibold text-blue-500 self-center">Removing watermark...</p>
               </div>
-              <div v-if="item.status === 'done'" class="p-2.5 sm:p-3 border-t border-emerald-500/15 flex gap-2">
+              <div v-if="item.status === 'done'" class="p-2.5 sm:p-3 border-t border-teal-500/15 flex gap-2">
                 <button
                   @click="downloadOne(item)"
-                  class="btn-micro-pop flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-md shadow-emerald-600/20"
+                  class="btn-micro-pop flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
                 >
                   <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon> Download
                 </button>
                 <button
                   @click="copyToClipboard(item, i)"
-                  class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-emerald-500 rounded-xl transition-all flex items-center gap-1"
+                  class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
                   :title="'Copy to clipboard'"
                 >
-                  <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-emerald-500' : ''"></iconify-icon>
+                  <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-teal-500' : ''"></iconify-icon>
                   <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
                 </button>
               </div>
@@ -439,9 +439,9 @@ function reset() {
             <button
               v-if="doneItems.length === 1"
               @click="downloadOne(doneItems[0])"
-              class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-emerald-500/25 transition-all duration-300"
+              class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-teal-500/25 transition-all duration-300"
             >
-              <div class="absolute inset-0 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-400"></div>
+              <div class="absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-teal-400"></div>
               <div class="relative flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download
               </div>
@@ -449,16 +449,16 @@ function reset() {
             <button
               v-if="doneItems.length > 1"
               @click="downloadAll"
-              class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-emerald-500/25 transition-all duration-300"
+              class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-teal-500/25 transition-all duration-300"
             >
-              <div class="absolute inset-0 bg-gradient-to-r from-emerald-600 via-cyan-600 to-teal-600"></div>
+              <div class="absolute inset-0 bg-gradient-to-r from-teal-600 via-blue-600 to-teal-600"></div>
               <div class="relative flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:file-zip-bold" width="18"></iconify-icon> Download All ZIP
               </div>
             </button>
             <button
               @click="reset"
-              class="btn-micro-pop w-full py-2.5 liquid-glass-pill text-slate-700 dark:text-slate-300 hover:text-emerald-500 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300"
+              class="btn-micro-pop w-full py-2.5 liquid-glass-pill text-slate-700 dark:text-slate-300 hover:text-teal-500 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300"
             >
               Process Another
             </button>
