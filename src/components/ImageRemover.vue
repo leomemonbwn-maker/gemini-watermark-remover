@@ -16,7 +16,7 @@ function getEngine() {
 
 const fileInput = ref(null);
 const dragOver = ref(false);
-const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, viewMode, sliderPos, format, isPinning }
+const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, viewMode, sliderPos, format }
 const copiedIdx = ref(-1);
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
@@ -151,12 +151,11 @@ async function handleFiles(fileList) {
         viewMode: 'sideBySide',
         sliderPos: 50,
         format: 'png',
-        isPinning: false,
       }) - 1;
     const item = items.value[idx];
 
     try {
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 200));
       const result = await engine.process(file);
 
       item.status = 'done';
@@ -170,47 +169,6 @@ async function handleFiles(fileList) {
       console.error(err);
       item.status = 'error';
     }
-  }
-}
-
-// Tap / Click directly on image element to pin watermark location
-async function onImagePinClick(e, item) {
-  if (!item || !item.file || !item.width || !item.height) return;
-
-  // Find exact <img> element clicked
-  let imgEl = e.target;
-  if (imgEl.tagName !== 'IMG') {
-    imgEl = e.currentTarget.querySelector('img');
-  }
-  if (!imgEl) return;
-
-  const rect = imgEl.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
-
-  if (clickX < 0 || clickY < 0 || clickX > rect.width || clickY > rect.height) return;
-
-  // Exact pixel scaling to natural image resolution
-  const scaleX = item.width / rect.width;
-  const scaleY = item.height / rect.height;
-  const tapX = Math.round(clickX * scaleX);
-  const tapY = Math.round(clickY * scaleY);
-
-  const engine = await getEngine();
-  const customConfig = pointTargetWatermark(item.width, item.height, tapX, tapY);
-
-  item.status = 'loading';
-  try {
-    const result = await engine.process(item.file, customConfig);
-    if (item.url) URL.revokeObjectURL(item.url);
-    item.url = URL.createObjectURL(result.blob);
-    item.blob = result.blob;
-    item.config = result.config;
-    item.status = 'done';
-    item.isPinning = false;
-  } catch (err) {
-    console.error(err);
-    item.status = 'done';
   }
 }
 
@@ -374,14 +332,14 @@ function reset() {
   <div
     class="max-w-5xl mx-auto liquid-glass rounded-3xl p-4 sm:p-6 shadow-2xl relative z-10 transition-all duration-300"
   >
-    <!-- Advanced tuner -->
+    <!-- Advanced tuner with Touch & Drag Canvas -->
     <div v-if="tunerActive" class="animate-fade-in">
       <div class="flex flex-col lg:flex-row gap-6">
         <div class="flex-1 min-w-0">
           <WatermarkTuner :settings="tunerSettings" :frame="tunerFrame" :bg-img="tunerBgImg" :base="tunerBase" />
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
-            Drag the sliders until the watermark disappears in the zoomed corner. The
-            <span class="text-teal-500 font-semibold">teal box</span> shows what gets cleaned.
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-3 leading-relaxed text-center">
+            <iconify-icon icon="ph:hand-swipe-left-bold" class="text-teal-500 align-middle mr-1"></iconify-icon>
+            <strong>Touch & Drag directly on the Preview canvas</strong> to move the watermark target box anywhere!
           </p>
         </div>
         <div class="w-full lg:w-60 flex-shrink-0">
@@ -457,7 +415,7 @@ function reset() {
         
         <label class="mt-3 sm:mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer" @click.stop>
           <input type="checkbox" v-model="advanced" class="accent-teal-500 w-3.5 h-3.5 rounded" />
-          <span>Advanced: tune position manually</span>
+          <span>Advanced: touch & drag target box</span>
         </label>
       </div>
       
@@ -508,24 +466,19 @@ function reset() {
               </div>
             </div>
 
-            <!-- VIEW MODE 1: Side-by-Side (With Touch-to-Pin Target Listener) -->
+            <!-- VIEW MODE 1: Side-by-Side -->
             <div v-if="item.viewMode === 'sideBySide'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <!-- Original (Tap/Click image directly to pin watermark location) -->
+              <!-- Original -->
               <div class="liquid-glass-card rounded-xl overflow-hidden group relative">
                 <div class="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-white/5">
                   <span class="font-bold text-slate-700 dark:text-slate-300 text-[11px] flex items-center gap-1">
-                    <iconify-icon icon="ph:map-pin-bold" class="text-teal-500"></iconify-icon>
-                    Original (Tap image to pin)
+                    <iconify-icon icon="ph:image-bold" class="text-teal-500"></iconify-icon>
+                    Original Photo
                   </span>
                   <span v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">{{ item.width }}×{{ item.height }}</span>
                 </div>
 
-                <div
-                  class="p-2 checker flex justify-center h-48 sm:h-56 relative overflow-hidden cursor-crosshair"
-                  @click="onImagePinClick($event, item)"
-                  title="Click/Tap anywhere on this image to point the watermark location!"
-                >
-                  <!-- Scanning animation during loading state -->
+                <div class="p-2 checker flex justify-center h-48 sm:h-56 relative overflow-hidden">
                   <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
                     <div class="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent absolute top-0 animate-pulse shadow-[0_0_15px_#00f2fe]"></div>
                     <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-transparent mb-2"></div>
@@ -535,7 +488,7 @@ function reset() {
                   <img
                     v-if="item.originalSrc"
                     :src="item.originalSrc"
-                    class="max-h-full object-contain rounded mx-auto select-none transition-transform group-hover:scale-[1.01]"
+                    class="max-h-full object-contain rounded mx-auto select-none"
                   />
                 </div>
               </div>
@@ -575,18 +528,18 @@ function reset() {
               </div>
             </div>
 
-            <!-- Touch-to-Pin Callout Bar -->
+            <!-- Touch & Drag Target Box Action Button -->
             <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs font-semibold text-teal-700 dark:text-teal-300">
               <span class="flex items-center gap-1.5">
-                <iconify-icon icon="ph:crosshair-bold" class="text-base text-teal-500 animate-pulse"></iconify-icon>
-                <span><strong>Touch/Click anywhere on the Original photo</strong> to pin exact watermark target!</span>
+                <iconify-icon icon="ph:hand-swipe-left-bold" class="text-base text-teal-500 animate-pulse"></iconify-icon>
+                <span>Watermark custom position? Touch & Drag target box anywhere!</span>
               </span>
               <button
                 @click="openTunerForItem(item)"
-                class="px-2 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-600 dark:text-teal-300 text-[11px] font-bold transition-all flex items-center gap-1"
+                class="px-3 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-md shadow-teal-500/20"
               >
-                <iconify-icon icon="ph:sliders-horizontal-bold"></iconify-icon>
-                Manual Tuner
+                <iconify-icon icon="ph:crosshair-bold"></iconify-icon>
+                Touch & Drag Target Box
               </button>
             </div>
 
