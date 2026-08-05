@@ -37,20 +37,30 @@ const faqs = [
 ];
 
 onMounted(() => {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('reveal-visible');
+  // Use requestIdleCallback to defer non-critical reveal observer setup
+  const initObserver = () => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (let i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) {
+            entries[i].target.classList.add('reveal-visible');
+            observer.unobserve(entries[i].target); // Stop observing once revealed
+          }
         }
-      });
-    },
-    { threshold: 0.08 }
-  );
+      },
+      { threshold: 0.05, rootMargin: '50px' }
+    );
 
-  document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
-    observer.observe(el);
-  });
+    document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
+      observer.observe(el);
+    });
+  };
+
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(initObserver);
+  } else {
+    setTimeout(initObserver, 100);
+  }
 });
 </script>
 

@@ -33,6 +33,7 @@ html {
   text-size-adjust: 100%;
 }
 
+/* Hardware-accelerate the entire page for 120Hz scroll compositing */
 body {
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
@@ -42,6 +43,7 @@ body {
   touch-action: manipulation;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-overflow-scrolling: touch;
 }
 
 .light body,
@@ -342,25 +344,80 @@ html:not(.dark) ::-webkit-scrollbar-thumb {
   animation-delay: 8s;
 }
 
-/* CRITICAL MOBILE LAG FIX:
-   On mobile screens (<= 768px), disable continuous blob animation & simplify blurs
-   so that mobile GPUs don't continuously re-rasterize heavy blur layers on every scroll frame! */
+/* ═══════════════════════════════════════════════════════════════════════
+   CRITICAL MOBILE PERFORMANCE OVERHAUL (≤768px)
+   Every backdrop-filter forces a full-layer GPU re-rasterization per scroll frame.
+   On mobile GPUs this causes visible jank/stutter. Solution:
+   1. Reduce ALL blur radii to ≤8px (huge GPU savings)
+   2. Drop saturate() entirely (saves a compositing pass)
+   3. Kill ALL infinite CSS animations (ping, pulse, blob, sparkle)
+   4. Hide ambient blob layers completely (saves 3 full-viewport blur passes)
+   5. Use content-visibility on off-screen sections
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
+
+  /* 1. HIDE ambient glow blobs entirely — they are invisible behind content anyway
+        but cost 3 × full-viewport blur-3xl (48px) GPU passes per frame */
   .animate-blob {
-    animation: none !important;
-    transform: translate3d(0, 0, 0) !important;
-    will-change: auto !important;
-    opacity: 0.55 !important;
+    display: none !important;
   }
-  
-  /* Lighter blur radius on mobile for silky 120Hz scrolling */
+
+  /* 2. Reduce ALL glass backdrop blurs to 8px max and drop saturate */
+  .liquid-glass-header {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
   .liquid-glass,
-  .glass-panel,
+  .glass-panel {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
   .liquid-glass-card,
-  .glass-card,
+  .glass-card {
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    transition: none !important;
+  }
+
+  .liquid-glass-pill,
+  .glass-pill {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+
   .glass-dropzone {
-    backdrop-filter: blur(12px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+  }
+
+  .mobile-glass-drawer {
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+
+  /* 3. Kill ALL infinite animations — they burn CPU/GPU every frame */
+  .animate-ping,
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce,
+  .animate-sparkle,
+  .animate-pulse-glow,
+  .animate-ripple {
+    animation: none !important;
+  }
+
+  /* 4. Disable card hover transforms (they trigger layout) */
+  .liquid-glass-card:hover,
+  .glass-card:hover {
+    transform: none !important;
+  }
+
+  /* 5. Content-visibility: auto for off-screen sections (skip paint) */
+  .reveal-on-scroll {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 400px;
   }
 }
 

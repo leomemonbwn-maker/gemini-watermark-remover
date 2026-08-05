@@ -207,41 +207,69 @@ function draw() {
   renderFrame(ctx, canvas.width, canvas.height, progress.value);
 }
 
+// Track visibility — don't burn GPU when component is scrolled out of view
+let isVisible = false;
+
+function startLoop() {
+  if (animLoopId) return; // already running
+  lastTimestamp = 0;
+  animLoopId = requestAnimationFrame(tick);
+}
+
+function stopLoop() {
+  if (animLoopId) {
+    cancelAnimationFrame(animLoopId);
+    animLoopId = null;
+  }
+}
+
 function tick(timestamp) {
+  animLoopId = null; // clear so startLoop() can re-enter
+
+  if (!isVisible) return; // off-screen: stop loop completely
+
   if (!lastTimestamp) lastTimestamp = timestamp;
   const delta = (timestamp - lastTimestamp) / 1000;
   lastTimestamp = timestamp;
 
+  let needsNextFrame = false;
+
   if (targetAnimProgress !== null) {
-    // Smooth interpolation to target stage
     const diff = targetAnimProgress - progress.value;
-    if (Math.abs(diff) < 0.01) {
+    if (Math.abs(diff) < 0.005) {
       progress.value = targetAnimProgress;
       targetAnimProgress = null;
+      draw();
+      // Animation complete — only continue if playing
+      needsNextFrame = isPlaying.value;
     } else {
-      progress.value += diff * 0.15;
+      progress.value += diff * 0.12;
+      draw();
+      needsNextFrame = true;
     }
-    draw();
   } else if (isPlaying.value) {
-    // Auto loop playback (slow & smooth: ~5s full cycle)
-    progress.value += delta * 0.22;
-    if (progress.value > 1) {
-      progress.value = 0;
-    }
+    progress.value += delta * 0.2;
+    if (progress.value > 1) progress.value = 0;
     draw();
+    needsNextFrame = true;
   }
 
-  animLoopId = requestAnimationFrame(tick);
+  // Only request next frame if we actually need to animate
+  if (needsNextFrame) {
+    animLoopId = requestAnimationFrame(tick);
+  }
 }
 
 function togglePlay() {
   isPlaying.value = !isPlaying.value;
   targetAnimProgress = null;
+  if (isPlaying.value && isVisible) startLoop();
 }
 
 function setStage(stage) {
   isPlaying.value = false;
   targetAnimProgress = stage.targetProgress;
+  if (isVisible) startLoop();
 }
 
 function onSliderInput(e) {
@@ -251,23 +279,45 @@ function onSliderInput(e) {
   draw();
 }
 
+const containerRef = ref(null);
+let visibilityObserver = null;
+
 onMounted(() => {
+  const isMobile = window.innerWidth < 768;
   const canvas = canvasRef.value;
   if (canvas) {
-    canvas.width = 560;
-    canvas.height = 560;
+    // Smaller canvas on mobile = less pixels to fill per frame
+    canvas.width = isMobile ? 400 : 560;
+    canvas.height = isMobile ? 400 : 560;
   }
   draw();
-  animLoopId = requestAnimationFrame(tick);
+
+  // Only run animation loop when component is in viewport
+  visibilityObserver = new IntersectionObserver(
+    ([entry]) => {
+      isVisible = entry.isIntersecting;
+      if (isVisible && (isPlaying.value || targetAnimProgress !== null)) {
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    },
+    { threshold: 0.05 }
+  );
+
+  if (containerRef.value) {
+    visibilityObserver.observe(containerRef.value);
+  }
 });
 
 onUnmounted(() => {
-  if (animLoopId) cancelAnimationFrame(animLoopId);
+  stopLoop();
+  if (visibilityObserver) visibilityObserver.disconnect();
 });
 </script>
 
 <template>
-  <div class="w-full max-w-6xl mx-auto my-4 sm:my-8 text-left">
+  <div ref="containerRef" class="w-full max-w-6xl mx-auto my-4 sm:my-8 text-left">
     
     <!-- Outer Glass Visualizer Container -->
     <div class="liquid-glass-card pro-gradient-border p-4 sm:p-6 lg:p-8 rounded-3xl shadow-2xl overflow-hidden">
