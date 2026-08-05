@@ -84,11 +84,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- Sapphire Ocean Ambient Blobs -->
+  <!-- Aqua Water Ambient Blobs -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-    <div class="absolute -top-40 -left-40 w-[30rem] h-[30rem] bg-teal-500/12 rounded-full blur-3xl animate-blob"></div>
-    <div class="absolute top-1/2 -right-40 w-[28rem] h-[28rem] bg-blue-500/12 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-    <div class="absolute -bottom-40 left-1/3 w-[26rem] h-[26rem] bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+    <div class="absolute -top-40 -left-40 w-[32rem] h-[32rem] bg-cyan-400/15 rounded-full blur-3xl animate-blob"></div>
+    <div class="absolute top-1/3 -right-40 w-[30rem] h-[30rem] bg-sky-400/15 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-40 left-1/3 w-[28rem] h-[28rem] bg-blue-500/12 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
   </div>
 
   <div class="relative z-10 flex flex-col min-h-screen">
