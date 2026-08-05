@@ -137,22 +137,17 @@ async function handleFiles(fileList) {
     const item = items.value[idx];
 
     try {
-      const { width, height, imageData, src } = await loadImageData(file);
-      const copy = new ImageData(new Uint8ClampedArray(imageData.data), width, height);
-      cleanFrame(engine.bg96, copy, width, height, engine.getWatermarkInfo(width, height), currentPreset.value.settings);
-
-      const c = document.createElement('canvas');
-      c.width = width;
-      c.height = height;
-      c.getContext('2d').putImageData(copy, 0, 0);
-      const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+      // Use the proven WatermarkEngine.process() path — it uses correct
+      // geometry for all image sizes (portrait, landscape, square) without
+      // any manual offset guessing.
+      const result = await engine.process(file);
 
       item.status = 'done';
-      item.originalSrc = src;
-      item.url = URL.createObjectURL(blob);
-      item.blob = blob;
-      item.width = width;
-      item.height = height;
+      item.originalSrc = result.originalSrc;
+      item.url = URL.createObjectURL(result.blob);
+      item.blob = result.blob;
+      item.width = result.width;
+      item.height = result.height;
     } catch (err) {
       console.error(err);
       item.status = 'error';
