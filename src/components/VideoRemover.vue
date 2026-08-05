@@ -132,13 +132,13 @@ async function runExport() {
 
   try {
     if (!engine) engine = await getEngine();
-    const resultBlob = await engine.processVideo(currentFile, {
+    const result = await engine.process(currentFile, {
       ...settings,
-      onProgress: (p) => { progress.value = p; },
+      onProgress: (p) => { progress.value = p.progress ?? p; },
     });
 
-    originalUrl.value = URL.createObjectURL(currentFile);
-    resultUrl.value = URL.createObjectURL(resultBlob);
+    originalUrl.value = result.originalUrl || URL.createObjectURL(currentFile);
+    resultUrl.value = result.url || URL.createObjectURL(result.blob);
     downloadName.value = `clean_${currentFile.name.replace(/\.[^/.]+$/, '')}.mp4`;
     status.value = 'done';
   } catch (err) {
