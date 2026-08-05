@@ -1,17 +1,69 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
 const TOTAL_FRAMES = 60;
-const containerRef = ref(null);
 const canvasRef = ref(null);
-const scrollProgress = ref(0);
-const currentFrameIndex = ref(0);
+const progress = ref(0); // 0 to 1
+const isPlaying = ref(true);
 
-let animFrameId = null;
-let ticking = false;
+const stages = [
+  {
+    id: 1,
+    range: [0, 0.25],
+    targetProgress: 0.1,
+    tag: '01 / STAGE ORIGIN',
+    title: 'Original Gemini Watermark',
+    desc: 'Google embeds a ✦ sparkle logo in the corner as an alpha opacity blend layer during AI image generation.',
+    icon: 'ph:sparkle-bold',
+    color: 'emerald'
+  },
+  {
+    id: 2,
+    range: [0.25, 0.55],
+    targetProgress: 0.4,
+    tag: '02 / DISASSEMBLY MODE',
+    title: 'Inverse Matrix Unblending',
+    desc: 'GemClean AI isolates the alpha channel overlay and detaches the watermark particles from the background image.',
+    icon: 'ph:intersect-bold',
+    color: 'cyan'
+  },
+  {
+    id: 3,
+    range: [0.55, 0.85],
+    targetProgress: 0.7,
+    tag: '03 / RECONSTRUCTION',
+    title: 'Mathematical Pixel Restoration',
+    desc: 'The original RGB pixel matrix is calculated with 100% mathematical precision with zero compression artifacts.',
+    icon: 'ph:cpu-bold',
+    color: 'purple'
+  },
+  {
+    id: 4,
+    range: [0.85, 1.0],
+    targetProgress: 1.0,
+    tag: '04 / PRISTINE OUTPUT',
+    title: 'Lossless Export Ready',
+    desc: 'Your image is restored to pristine original condition. Download clean PNG/MP4 or copy straight to clipboard.',
+    icon: 'ph:check-circle-bold',
+    color: 'emerald'
+  }
+];
 
-// Direct procedural rendering onto the canvas context with zero memory footprint
-function renderFrame(ctx, width, height, progress) {
+const currentStageIndex = computed(() => {
+  const p = progress.value;
+  if (p < 0.25) return 0;
+  if (p < 0.55) return 1;
+  if (p < 0.85) return 2;
+  return 3;
+});
+
+const currentStage = computed(() => stages[currentStageIndex.value]);
+
+let animLoopId = null;
+let lastTimestamp = 0;
+let targetAnimProgress = null;
+
+function renderFrame(ctx, width, height, p) {
   const cx = width / 2;
   const cy = height / 2;
 
@@ -19,29 +71,29 @@ function renderFrame(ctx, width, height, progress) {
   ctx.fillStyle = '#080C15';
   ctx.fillRect(0, 0, width, height);
 
-  // Background ambient aura
-  const auraGradient = ctx.createRadialGradient(cx, cy, 30, cx, cy, width * 0.45);
-  auraGradient.addColorStop(0, `rgba(16, 185, 129, ${0.15 - progress * 0.05})`);
-  auraGradient.addColorStop(0.5, `rgba(6, 182, 212, ${0.12 + progress * 0.08})`);
+  // Ambient aura
+  const auraGradient = ctx.createRadialGradient(cx, cy, 30, cx, cy, width * 0.48);
+  auraGradient.addColorStop(0, `rgba(16, 185, 129, ${0.18 - p * 0.06})`);
+  auraGradient.addColorStop(0.5, `rgba(6, 182, 212, ${0.15 + p * 0.08})`);
   auraGradient.addColorStop(1, 'rgba(8, 12, 21, 0)');
   ctx.fillStyle = auraGradient;
   ctx.fillRect(0, 0, width, height);
 
   // ── LAYER 1: Core AI Image Base Card ──
-  const cardSize = width * 0.52;
+  const cardSize = width * 0.62;
   const cardX = cx - cardSize / 2;
   const cardY = cy - cardSize / 2;
 
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(cardX, cardY, cardSize, cardSize, 20);
+  ctx.roundRect(cardX, cardY, cardSize, cardSize, 18);
   ctx.fillStyle = '#111827';
   ctx.fill();
   ctx.lineWidth = 2;
-  ctx.strokeStyle = `rgba(16, 185, 129, ${0.4 + progress * 0.4})`;
+  ctx.strokeStyle = `rgba(16, 185, 129, ${0.4 + p * 0.4})`;
   ctx.stroke();
 
-  // Vibrant simulated gradient landscape
+  // Vibrant gradient landscape
   const imgGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardSize, cardY + cardSize);
   imgGrad.addColorStop(0, '#1e1b4b');
   imgGrad.addColorStop(0.5, '#065f46');
@@ -49,13 +101,14 @@ function renderFrame(ctx, width, height, progress) {
   ctx.fillStyle = imgGrad;
   ctx.fill();
 
-  // Mountain & Moon Decorative Elements
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+  // Decorative Moon
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
   ctx.beginPath();
   ctx.arc(cardX + cardSize * 0.28, cardY + cardSize * 0.28, cardSize * 0.12, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = 'rgba(16, 185, 129, 0.35)';
+  // Mountains
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.4)';
   ctx.beginPath();
   ctx.moveTo(cardX + cardSize * 0.1, cardY + cardSize * 0.85);
   ctx.lineTo(cardX + cardSize * 0.45, cardY + cardSize * 0.42);
@@ -64,23 +117,23 @@ function renderFrame(ctx, width, height, progress) {
   ctx.restore();
 
   // ── LAYER 2: Exploding / Disassembling Watermark Sparkle Overlay ──
-  const wmSize = cardSize * 0.18;
+  const wmSize = cardSize * 0.22;
   const baseWmX = cardX + cardSize - wmSize - cardSize * 0.08;
   const baseWmY = cardY + cardSize - wmSize - cardSize * 0.08;
 
-  const explodeY = progress * (cardSize * 0.6);
-  const explodeX = Math.sin(progress * Math.PI * 2) * (cardSize * 0.15);
-  const wmOpacity = Math.max(0, 1 - progress * 1.3);
-  const wmScale = 1 + progress * 1.6;
+  const explodeY = p * (cardSize * 0.65);
+  const explodeX = Math.sin(p * Math.PI * 2) * (cardSize * 0.18);
+  const wmOpacity = Math.max(0, 1 - p * 1.35);
+  const wmScale = 1 + p * 1.5;
 
   if (wmOpacity > 0.01) {
     ctx.save();
     ctx.translate(baseWmX + wmSize / 2 + explodeX, baseWmY + wmSize / 2 - explodeY);
     ctx.scale(wmScale, wmScale);
-    ctx.rotate(progress * Math.PI * 1.5);
+    ctx.rotate(p * Math.PI * 1.5);
 
     const sparkGlow = ctx.createRadialGradient(0, 0, 2, 0, 0, wmSize);
-    sparkGlow.addColorStop(0, `rgba(236, 72, 153, ${wmOpacity * 0.8})`);
+    sparkGlow.addColorStop(0, `rgba(236, 72, 153, ${wmOpacity * 0.85})`);
     sparkGlow.addColorStop(0.5, `rgba(168, 85, 247, ${wmOpacity * 0.5})`);
     sparkGlow.addColorStop(1, 'rgba(168, 85, 247, 0)');
     ctx.fillStyle = sparkGlow;
@@ -93,12 +146,12 @@ function renderFrame(ctx, width, height, progress) {
     ctx.beginPath();
     const rOuter = wmSize * 0.45;
     const rInner = wmSize * 0.12;
-    for (let p = 0; p < 8; p++) {
-      const radius = p % 2 === 0 ? rOuter : rInner;
-      const angle = (p * Math.PI) / 4;
+    for (let i = 0; i < 8; i++) {
+      const radius = i % 2 === 0 ? rOuter : rInner;
+      const angle = (i * Math.PI) / 4;
       const px = Math.cos(angle) * radius;
       const py = Math.sin(angle) * radius;
-      if (p === 0) ctx.moveTo(px, py);
+      if (i === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     }
     ctx.closePath();
@@ -107,20 +160,20 @@ function renderFrame(ctx, width, height, progress) {
   }
 
   // ── LAYER 3: Dissolving Pixel Particles ──
-  if (progress > 0.15) {
-    const particleCount = 20;
-    for (let p = 0; p < particleCount; p++) {
-      const seed = p * 137.5;
-      const pRadius = 30 + ((seed * 11) % 120) * progress;
-      const pAngle = (seed * Math.PI) / 180 + progress * 4;
+  if (p > 0.12) {
+    const particleCount = 24;
+    for (let i = 0; i < particleCount; i++) {
+      const seed = i * 137.5;
+      const pRadius = 25 + ((seed * 11) % 130) * p;
+      const pAngle = (seed * Math.PI) / 180 + p * 4.5;
       const px = baseWmX + wmSize / 2 + Math.cos(pAngle) * pRadius + explodeX * 0.5;
       const py = baseWmY + wmSize / 2 + Math.sin(pAngle) * pRadius - explodeY * 0.7;
-      const pAlpha = Math.max(0, Math.sin(progress * Math.PI) * (1 - p / particleCount));
-      const pSize = 2.5 + (p % 3);
+      const pAlpha = Math.max(0, Math.sin(p * Math.PI) * (1 - i / particleCount));
+      const pSize = 2 + (i % 3);
 
-      ctx.fillStyle = p % 3 === 0
+      ctx.fillStyle = i % 3 === 0
         ? `rgba(16, 185, 129, ${pAlpha})`
-        : p % 3 === 1
+        : i % 3 === 1
         ? `rgba(6, 182, 212, ${pAlpha})`
         : `rgba(236, 72, 153, ${pAlpha})`;
       ctx.beginPath();
@@ -130,16 +183,16 @@ function renderFrame(ctx, width, height, progress) {
   }
 
   // ── LAYER 4: Scanning Laser Matrix Line ──
-  const scanY = cardY + (cardSize * (progress * 1.5 - 0.25));
+  const scanY = cardY + (cardSize * (p * 1.4 - 0.2));
   if (scanY >= cardY && scanY <= cardY + cardSize) {
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardSize, cardSize, 20);
+    ctx.roundRect(cardX, cardY, cardSize, cardSize, 18);
     ctx.clip();
 
     const laserGrad = ctx.createLinearGradient(cardX, scanY, cardX + cardSize, scanY);
     laserGrad.addColorStop(0, 'rgba(16, 185, 129, 0)');
-    laserGrad.addColorStop(0.5, 'rgba(6, 182, 212, 0.9)');
+    laserGrad.addColorStop(0.5, 'rgba(6, 182, 212, 0.95)');
     laserGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
     ctx.fillStyle = laserGrad;
     ctx.fillRect(cardX, scanY - 1.5, cardSize, 3);
@@ -147,142 +200,212 @@ function renderFrame(ctx, width, height, progress) {
   }
 }
 
-function updateFrame() {
+function draw() {
   const canvas = canvasRef.value;
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  renderFrame(ctx, canvas.width, canvas.height, scrollProgress.value);
-  ticking = false;
+  renderFrame(ctx, canvas.width, canvas.height, progress.value);
 }
 
-function onScroll() {
-  if (ticking) return;
-  const el = containerRef.value;
-  if (!el) return;
+function tick(timestamp) {
+  if (!lastTimestamp) lastTimestamp = timestamp;
+  const delta = (timestamp - lastTimestamp) / 1000;
+  lastTimestamp = timestamp;
 
-  const rect = el.getBoundingClientRect();
-  const windowHeight = window.innerHeight;
-  const totalScrollable = rect.height - windowHeight;
-  if (totalScrollable <= 0) return;
+  if (targetAnimProgress !== null) {
+    // Smooth interpolation to target stage
+    const diff = targetAnimProgress - progress.value;
+    if (Math.abs(diff) < 0.01) {
+      progress.value = targetAnimProgress;
+      targetAnimProgress = null;
+    } else {
+      progress.value += diff * 0.15;
+    }
+    draw();
+  } else if (isPlaying.value) {
+    // Auto loop playback (slow & smooth: ~5s full cycle)
+    progress.value += delta * 0.22;
+    if (progress.value > 1) {
+      progress.value = 0;
+    }
+    draw();
+  }
 
-  const currentScroll = -rect.top;
-  const rawProgress = Math.min(Math.max(currentScroll / totalScrollable, 0), 1);
-  scrollProgress.value = rawProgress;
-  currentFrameIndex.value = Math.min(Math.floor(rawProgress * TOTAL_FRAMES), TOTAL_FRAMES - 1);
+  animLoopId = requestAnimationFrame(tick);
+}
 
-  ticking = true;
-  if (animFrameId) cancelAnimationFrame(animFrameId);
-  animFrameId = requestAnimationFrame(updateFrame);
+function togglePlay() {
+  isPlaying.value = !isPlaying.value;
+  targetAnimProgress = null;
+}
+
+function setStage(stage) {
+  isPlaying.value = false;
+  targetAnimProgress = stage.targetProgress;
+}
+
+function onSliderInput(e) {
+  isPlaying.value = false;
+  targetAnimProgress = null;
+  progress.value = parseFloat(e.target.value) / 100;
+  draw();
 }
 
 onMounted(() => {
-  const isMobile = window.innerWidth < 768;
   const canvas = canvasRef.value;
   if (canvas) {
-    // Dynamic lightweight canvas dimensions for mobile vs desktop
-    canvas.width = isMobile ? 500 : 700;
-    canvas.height = isMobile ? 500 : 700;
+    canvas.width = 560;
+    canvas.height = 560;
   }
-  updateFrame();
-  window.addEventListener('scroll', onScroll, { passive: true });
+  draw();
+  animLoopId = requestAnimationFrame(tick);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', onScroll);
-  if (animFrameId) cancelAnimationFrame(animFrameId);
+  if (animLoopId) cancelAnimationFrame(animLoopId);
 });
 </script>
 
 <template>
-  <!-- 300vh Scroll Pin Track Container -->
-  <section ref="containerRef" class="relative h-[300vh] w-full select-none">
+  <div class="w-full max-w-6xl mx-auto my-4 sm:my-8 text-left">
     
-    <!-- Sticky Viewport Canvas Frame -->
-    <div class="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden z-10 px-2 sm:px-4">
+    <!-- Outer Glass Visualizer Container -->
+    <div class="liquid-glass-card pro-gradient-border p-4 sm:p-6 lg:p-8 rounded-3xl shadow-2xl overflow-hidden">
       
-      <!-- Canvas Display -->
-      <div class="relative w-full max-w-2xl aspect-square flex items-center justify-center p-2 sm:p-4">
-        <canvas
-          ref="canvasRef"
-          width="600"
-          height="600"
-          class="w-full h-full object-contain rounded-2xl sm:rounded-3xl shadow-2xl drop-shadow-[0_20px_50px_rgba(16,185,129,0.2)]"
-        ></canvas>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+        
+        <!-- LEFT COLUMN: Canvas Visualizer Deck (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col items-center">
+          
+          <!-- Obsidian Canvas Frame Box -->
+          <div class="relative w-full aspect-square max-w-[440px] bg-[#080C15] rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-emerald-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col justify-between overflow-hidden">
+            
+            <!-- Top Status Bar -->
+            <div class="flex items-center justify-between z-10 text-[10px] sm:text-xs font-mono font-bold">
+              <div class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/50 border border-emerald-500/30 text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>60 FPS DISASSEMBLY</span>
+              </div>
+              <div class="px-2.5 py-1 rounded-full bg-black/50 border border-cyan-500/30 text-cyan-400">
+                FRAME {{ Math.min(Math.floor(progress * TOTAL_FRAMES) + 1, TOTAL_FRAMES) }}/{{ TOTAL_FRAMES }}
+              </div>
+            </div>
 
-        <!-- Progress Indicator Ring -->
-        <div class="absolute bottom-3 right-3 sm:bottom-6 sm:right-8 liquid-glass-pill px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-emerald-500/40 text-[10px] sm:text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5 sm:gap-2 shadow-lg backdrop-blur-md">
-          <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>FRAME {{ currentFrameIndex + 1 }}/{{ TOTAL_FRAMES }}</span>
-          <span class="text-slate-500">•</span>
-          <span>{{ Math.round(scrollProgress * 100) }}%</span>
+            <!-- Canvas Center -->
+            <div class="relative w-full flex-1 flex items-center justify-center py-2">
+              <canvas
+                ref="canvasRef"
+                class="w-full h-full object-contain rounded-xl"
+              ></canvas>
+            </div>
+
+            <!-- Bottom Progress Pill inside frame -->
+            <div class="flex items-center justify-between z-10 text-[10px] sm:text-xs font-mono text-slate-400 px-1">
+              <span class="text-emerald-400 font-bold">STAGE {{ currentStageIndex + 1 }}/4</span>
+              <span class="font-extrabold text-white">{{ Math.round(progress * 100) }}% RESTORED</span>
+            </div>
+
+          </div>
+
+          <!-- Interactive Control Strip -->
+          <div class="w-full max-w-[440px] mt-4 flex items-center gap-3 bg-white/40 dark:bg-black/30 backdrop-blur-md p-2 sm:p-3 rounded-2xl border border-gray-200 dark:border-white/10 shadow-md">
+            
+            <!-- Play/Pause Toggle Button -->
+            <button
+              @click="togglePlay"
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 active:scale-95 transition-transform shrink-0"
+              :aria-label="isPlaying ? 'Pause Simulation' : 'Play Simulation'"
+            >
+              <iconify-icon :icon="isPlaying ? 'ph:pause-fill' : 'ph:play-fill'" class="text-lg"></iconify-icon>
+            </button>
+
+            <!-- Scrubber Slider -->
+            <div class="flex-1 flex flex-col justify-center px-1">
+              <div class="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                <span>Original</span>
+                <span class="text-emerald-500 dark:text-emerald-400">Drag to Unblend</span>
+                <span>Lossless</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.5"
+                :value="progress * 100"
+                @input="onSliderInput"
+                class="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 focus:outline-none"
+              />
+            </div>
+
+          </div>
+
         </div>
-      </div>
 
-      <!-- ── SCROLLYTELLING OVERLAY STORY CARDS (Responsive Positioning) ── -->
-      <!-- Card 1: 0% - 25% Scroll -->
-      <div
-        :class="[
-          'absolute left-3 right-3 sm:left-6 sm:right-auto md:left-16 bottom-14 sm:bottom-20 md:top-1/3 md:bottom-auto max-w-sm mx-auto md:mx-0 liquid-glass-card pro-gradient-border p-4 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-500 pointer-events-none',
-          scrollProgress >= 0.0 && scrollProgress < 0.25
-            ? 'opacity-100 translate-y-0 scale-100'
-            : 'opacity-0 -translate-y-6 scale-95'
-        ]"
-      >
-        <span class="text-[9px] sm:text-[10px] font-extrabold font-mono text-emerald-400 uppercase tracking-widest block mb-0.5 sm:mb-1">01 / STAGE ORIGIN</span>
-        <h3 class="text-sm sm:text-lg font-extrabold text-white mb-1">Original Gemini Watermark</h3>
-        <p class="text-[11px] sm:text-xs text-slate-300 font-medium leading-relaxed m-0">
-          Google embeds a ✦ sparkle logo in the corner as an alpha opacity blend layer during AI image generation.
-        </p>
-      </div>
+        <!-- RIGHT COLUMN: Interactive Stage Breakdown Cards (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-2.5 sm:gap-3">
+          
+          <div class="mb-1">
+            <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-500 dark:text-emerald-400">Interactive Breakdown</span>
+            <h3 class="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">Deconstruction Steps</h3>
+          </div>
 
-      <!-- Card 2: 25% - 55% Scroll -->
-      <div
-        :class="[
-          'absolute left-3 right-3 sm:right-6 sm:left-auto md:right-16 bottom-14 sm:bottom-20 md:top-1/3 md:bottom-auto max-w-sm mx-auto md:mx-0 liquid-glass-card pro-gradient-border p-4 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-500 pointer-events-none',
-          scrollProgress >= 0.25 && scrollProgress < 0.55
-            ? 'opacity-100 translate-y-0 scale-100'
-            : 'opacity-0 translate-y-6 scale-95'
-        ]"
-      >
-        <span class="text-[9px] sm:text-[10px] font-extrabold font-mono text-cyan-400 uppercase tracking-widest block mb-0.5 sm:mb-1">02 / DISASSEMBLY MODE</span>
-        <h3 class="text-sm sm:text-lg font-extrabold text-white mb-1">Inverse Matrix Unblending</h3>
-        <p class="text-[11px] sm:text-xs text-slate-300 font-medium leading-relaxed m-0">
-          As you scroll, GemClean AI isolates the alpha channel overlay and detaches the watermark particles from the background image.
-        </p>
-      </div>
+          <!-- Step Items (Clickable to jump) -->
+          <div
+            v-for="(stg, idx) in stages"
+            :key="stg.id"
+            @click="setStage(stg)"
+            :class="[
+              'cursor-pointer p-3 sm:p-4 rounded-2xl border transition-all duration-300 relative text-left',
+              currentStageIndex === idx
+                ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 translate-x-1'
+                : 'bg-white/50 dark:bg-white/5 border-gray-200/60 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/20 hover:bg-white/70 dark:hover:bg-white/10 opacity-75 hover:opacity-100'
+            ]"
+          >
+            <div class="flex items-start gap-3">
+              <div
+                :class="[
+                  'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm transition-colors',
+                  currentStageIndex === idx
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                    : 'bg-gray-100 dark:bg-gray-800 text-slate-500 dark:text-slate-400'
+                ]"
+              >
+                <iconify-icon :icon="stg.icon"></iconify-icon>
+              </div>
 
-      <!-- Card 3: 55% - 85% Scroll -->
-      <div
-        :class="[
-          'absolute left-3 right-3 sm:left-6 sm:right-auto md:left-16 bottom-14 sm:bottom-20 md:bottom-1/4 max-w-sm mx-auto md:mx-0 liquid-glass-card pro-gradient-border p-4 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-500 pointer-events-none',
-          scrollProgress >= 0.55 && scrollProgress < 0.85
-            ? 'opacity-100 translate-y-0 scale-100'
-            : 'opacity-0 translate-y-6 scale-95'
-        ]"
-      >
-        <span class="text-[9px] sm:text-[10px] font-extrabold font-mono text-purple-400 uppercase tracking-widest block mb-0.5 sm:mb-1">03 / RECONSTRUCTION</span>
-        <h3 class="text-sm sm:text-lg font-extrabold text-white mb-1">Mathematical Pixel Restoration</h3>
-        <p class="text-[11px] sm:text-xs text-slate-300 font-medium leading-relaxed m-0">
-          The original RGB pixel matrix is calculated with 100% mathematical precision with zero compression artifacts.
-        </p>
-      </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-0.5">
+                  <span
+                    :class="[
+                      'text-[9px] font-extrabold font-mono uppercase tracking-widest',
+                      currentStageIndex === idx ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                    ]"
+                  >
+                    {{ stg.tag }}
+                  </span>
+                  <span
+                    v-if="currentStageIndex === idx"
+                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 animate-pulse"
+                  >
+                    ACTIVE
+                  </span>
+                </div>
 
-      <!-- Card 4: 85% - 100% Scroll -->
-      <div
-        :class="[
-          'absolute left-3 right-3 sm:right-6 sm:left-auto md:right-16 bottom-14 sm:bottom-20 md:bottom-1/4 max-w-sm mx-auto md:mx-0 liquid-glass-card pro-gradient-border p-4 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-500 pointer-events-none',
-          scrollProgress >= 0.85
-            ? 'opacity-100 translate-y-0 scale-100'
-            : 'opacity-0 translate-y-6 scale-95'
-        ]"
-      >
-        <span class="text-[9px] sm:text-[10px] font-extrabold font-mono text-emerald-400 uppercase tracking-widest block mb-0.5 sm:mb-1">04 / PRISTINE OUTPUT</span>
-        <h3 class="text-sm sm:text-lg font-extrabold text-white mb-1">Lossless Export Ready</h3>
-        <p class="text-[11px] sm:text-xs text-slate-300 font-medium leading-relaxed m-0">
-          Your image is restored to pristine original condition. Download PNG/MP4 or copy straight to your clipboard!
-        </p>
+                <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {{ stg.title }}
+                </h4>
+                <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium mt-0.5 line-clamp-2">
+                  {{ stg.desc }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
 
     </div>
-  </section>
+
+  </div>
 </template>
