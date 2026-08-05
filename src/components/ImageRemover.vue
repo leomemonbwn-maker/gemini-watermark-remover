@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
 import { cleanFrame } from '../engine/tuner.js';
+import { pointTargetWatermark } from '../engine/detector.js';
 
 let enginePromise = null;
 function getEngine() {
@@ -62,8 +63,8 @@ const advanced = ref(false);
 const IMG_PRESETS = [
   {
     id: 'auto',
-    label: '✨ Auto-Detect (4-Corner)',
-    desc: 'Scans all 4 corners for watermark logo position.',
+    label: '✨ 100% AI Auto-Scan',
+    desc: 'Scans full image quadrant to locate watermark position.',
     settings: { gain: 1, offsetX: 0, offsetY: 0, sizeScale: 1 },
   },
   {
@@ -147,13 +148,15 @@ async function handleFiles(fileList) {
         width: 0,
         height: 0,
         config: null,
-        viewMode: 'sideBySide', // 'sideBySide' | 'slider'
+        viewMode: 'sideBySide',
         sliderPos: 50,
-        format: 'png', // 'png' | 'webp' | 'jpeg'
+        format: 'png',
       }) - 1;
     const item = items.value[idx];
 
     try {
+      // Simulate scanning progress UX
+      await new Promise(r => setTimeout(r, 400));
       const result = await engine.process(file);
 
       item.status = 'done';
@@ -167,6 +170,42 @@ async function handleFiles(fileList) {
       console.error(err);
       item.status = 'error';
     }
+  }
+}
+
+// Tap / Click on image to directly point & target watermark location
+async function onImageTap(e, item) {
+  if (!item || !item.file || !item.width || !item.height) return;
+
+  const targetContainer = e.currentTarget;
+  const imgEl = targetContainer.querySelector('img');
+  if (!imgEl) return;
+
+  const rect = imgEl.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  if (clickX < 0 || clickY < 0 || clickX > rect.width || clickY > rect.height) return;
+
+  const scaleX = item.width / rect.width;
+  const scaleY = item.height / rect.height;
+  const tapX = Math.round(clickX * scaleX);
+  const tapY = Math.round(clickY * scaleY);
+
+  const engine = await getEngine();
+  const customConfig = pointTargetWatermark(item.width, item.height, tapX, tapY);
+
+  item.status = 'loading';
+  try {
+    const result = await engine.process(item.file, customConfig);
+    if (item.url) URL.revokeObjectURL(item.url);
+    item.url = URL.createObjectURL(result.blob);
+    item.blob = result.blob;
+    item.config = result.config;
+    item.status = 'done';
+  } catch (err) {
+    console.error(err);
+    item.status = 'done';
   }
 }
 
@@ -217,7 +256,6 @@ async function downloadAll() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// ── Slider dragging logic for result item ──
 let activeDraggingItem = null;
 
 function onSliderPointerDown(e, item) {
@@ -244,7 +282,6 @@ function onSliderPointerUp() {
   activeDraggingItem = null;
 }
 
-// ── Advanced tuner ──────────────────────────────────────────────
 function loadImageData(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -439,12 +476,13 @@ function reset() {
             :key="i"
             class="p-3 sm:p-4 liquid-glass-card rounded-2xl space-y-3"
           >
-            <!-- Card Header: Title + Mode Toggle (Side-by-Side vs Slider) -->
+            <!-- Card Header: Title + Mode Toggle -->
             <div class="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2.5">
               <div class="flex items-center gap-2 overflow-hidden">
                 <h3 class="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate">{{ item.displayName }}</h3>
+                
                 <span v-if="item.status === 'done' && item.config" class="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/15 px-2 py-0.5 rounded-full flex-shrink-0">
-                  {{ item.config.corner ? item.config.corner + ' Corner' : 'Auto-Located' }}
+                  {{ item.config.isCustomPoint ? `📍 Pointed (${item.config.tappedX}, ${item.config.tappedY})` : '✨ 100% AI Auto-Scanned' }}
                 </span>
               </div>
 
@@ -465,16 +503,31 @@ function reset() {
               </div>
             </div>
 
-            <!-- VIEW MODE 1: Side-by-Side -->
+            <!-- VIEW MODE 1: Side-by-Side (With Tap-to-Point Watermark Target listener) -->
             <div v-if="item.viewMode === 'sideBySide'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <!-- Original -->
-              <div class="liquid-glass-card rounded-xl overflow-hidden">
+              <!-- Original (Click to point watermark location) -->
+              <div
+                class="liquid-glass-card rounded-xl overflow-hidden cursor-crosshair group relative"
+                title="Tap / Click anywhere on this image to point exact watermark location!"
+                @click="onImageTap($event, item)"
+              >
                 <div class="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-white/5">
-                  <span class="font-bold text-slate-700 dark:text-slate-300 text-[11px]">Original</span>
+                  <span class="font-bold text-slate-700 dark:text-slate-300 text-[11px] flex items-center gap-1">
+                    <iconify-icon icon="ph:hand-tap-bold" class="text-teal-500"></iconify-icon>
+                    Original (Tap to point)
+                  </span>
                   <span v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">{{ item.width }}×{{ item.height }}</span>
                 </div>
-                <div class="p-2 checker flex justify-center h-48 sm:h-56">
-                  <img v-if="item.originalSrc" :src="item.originalSrc" class="max-h-full object-contain rounded mx-auto" />
+
+                <div class="p-2 checker flex justify-center h-48 sm:h-56 relative overflow-hidden">
+                  <!-- Scanning animation during loading state -->
+                  <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center">
+                    <div class="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent absolute top-0 animate-pulse shadow-[0_0_15px_#00f2fe]"></div>
+                    <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-transparent mb-2"></div>
+                    <span class="text-xs font-mono font-extrabold text-cyan-300 tracking-wider animate-pulse">🔍 100% AI Scanning...</span>
+                  </div>
+
+                  <img v-if="item.originalSrc" :src="item.originalSrc" class="max-h-full object-contain rounded mx-auto select-none pointer-events-none" />
                 </div>
               </div>
 
@@ -500,16 +553,12 @@ function reset() {
               @pointerup="onSliderPointerUp"
               @pointerleave="onSliderPointerUp"
             >
-              <!-- Cleaned (after) base -->
               <img :src="item.url" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" />
-              <!-- Original (before) clipped -->
               <img :src="item.originalSrc" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" :style="{ clipPath: `inset(0 ${100 - item.sliderPos}% 0 0)` }" />
 
-              <!-- Labels -->
               <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white backdrop-blur-md">Before</span>
               <span class="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-600/90 text-white backdrop-blur-md">After</span>
 
-              <!-- Handle line -->
               <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)] pointer-events-none" :style="{ left: `${item.sliderPos}%` }">
                 <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white text-teal-600 shadow-lg flex items-center justify-center font-bold">
                   <iconify-icon icon="ph:arrows-left-right-bold" width="14"></iconify-icon>
@@ -517,9 +566,14 @@ function reset() {
               </div>
             </div>
 
+            <!-- Tap-to-Point Banner Tip -->
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-[11px] font-medium text-teal-700 dark:text-teal-300">
+              <iconify-icon icon="ph:hand-tap-bold" class="text-sm text-teal-500 flex-shrink-0"></iconify-icon>
+              <span><strong>Tap/Click anywhere on the Original photo</strong> if watermark is in a custom position!</span>
+            </div>
+
             <!-- Controls bar: Format selector + Download + Re-Tune + Copy -->
             <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-2 pt-1 border-t border-black/5 dark:border-white/5">
-              <!-- Format Selector -->
               <div class="flex items-center gap-1 text-xs font-semibold text-slate-500">
                 <span>Format:</span>
                 <select
@@ -536,7 +590,7 @@ function reset() {
 
               <button
                 @click="downloadFormatted(item)"
-                class="btn-micro-pop flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
+                class="btn-micro-pop flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
               >
                 <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon>
                 <span>Download {{ item.format.toUpperCase() }}</span>
@@ -544,7 +598,7 @@ function reset() {
 
               <button
                 @click="openTunerForItem(item)"
-                class="btn-micro-pop liquid-glass-pill px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
+                class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
                 title="Adjust watermark position manually"
               >
                 <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-blue-500"></iconify-icon>
@@ -553,7 +607,7 @@ function reset() {
 
               <button
                 @click="copyToClipboard(item, i)"
-                class="btn-micro-pop liquid-glass-pill px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
+                class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
               >
                 <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-teal-500' : ''"></iconify-icon>
                 <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
