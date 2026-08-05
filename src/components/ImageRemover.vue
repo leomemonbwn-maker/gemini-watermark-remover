@@ -3,7 +3,6 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
 import { cleanFrame } from '../engine/tuner.js';
 
-// Engine is lazy-loaded only when the user uploads an image.
 let enginePromise = null;
 function getEngine() {
   if (!enginePromise) {
@@ -16,7 +15,7 @@ function getEngine() {
 
 const fileInput = ref(null);
 const dragOver = ref(false);
-const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config }
+const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, viewMode, sliderPos, format }
 const copiedIdx = ref(-1);
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
@@ -58,33 +57,31 @@ onUnmounted(() => {
   window.removeEventListener('paste', handlePaste);
 });
 
-// Advanced "tune-it-yourself" mode
 const advanced = ref(false);
 
-// Watermark position presets
 const IMG_PRESETS = [
   {
     id: 'auto',
-    label: '✨ Auto-Detect (Smart)',
-    desc: 'Automatically scans corner for Gemini watermark logo position.',
+    label: '✨ Auto-Detect (4-Corner)',
+    desc: 'Scans all 4 corners for watermark logo position.',
     settings: { gain: 1, offsetX: 0, offsetY: 0, sizeScale: 1 },
   },
   {
     id: 'corner32',
     label: '📐 Standard Corner (32px)',
-    desc: 'Default Gemini output — watermark sits 32px from bottom-right corner.',
+    desc: 'Default Gemini output — 32px margin from corner.',
     settings: { gain: 1, offsetX: 32, offsetY: 32, sizeScale: 1 },
   },
   {
     id: 'corner48',
     label: '📐 Classic Corner (48px)',
-    desc: 'Older or scaled Gemini outputs with 48px padding.',
+    desc: '48px padded corner watermark placement.',
     settings: { gain: 1, offsetX: 16, offsetY: 16, sizeScale: 1 },
   },
   {
     id: 'inset',
     label: '📐 Inset Margin (128px)',
-    desc: 'Gemini web downloads with extra padding inside image.',
+    desc: 'Gemini web downloads with deep margin padding.',
     settings: { gain: 0.8, offsetX: -64, offsetY: -64, sizeScale: 1 },
   },
 ];
@@ -141,7 +138,7 @@ async function handleFiles(fileList) {
     const idx =
       items.value.push({
         file,
-        name: `clean_${file.name.replace(/\.[^/.]+$/, '')}.png`,
+        name: `clean_${file.name.replace(/\.[^/.]+$/, '')}`,
         displayName: file.name,
         status: 'loading',
         originalSrc: '',
@@ -150,6 +147,9 @@ async function handleFiles(fileList) {
         width: 0,
         height: 0,
         config: null,
+        viewMode: 'sideBySide', // 'sideBySide' | 'slider'
+        sliderPos: 50,
+        format: 'png', // 'png' | 'webp' | 'jpeg'
       }) - 1;
     const item = items.value[idx];
 
@@ -170,11 +170,36 @@ async function handleFiles(fileList) {
   }
 }
 
-function downloadOne(item) {
+async function downloadFormatted(item) {
+  if (!item.blob) return;
+  
+  let exportBlob = item.blob;
+  let ext = item.format || 'png';
+  let mimeType = 'image/png';
+  if (ext === 'webp') mimeType = 'image/webp';
+  if (ext === 'jpeg') mimeType = 'image/jpeg';
+
+  if (ext !== 'png') {
+    const img = new Image();
+    img.src = item.url;
+    await new Promise((r) => { img.onload = r; });
+    const c = document.createElement('canvas');
+    c.width = item.width; c.height = item.height;
+    const ctx = c.getContext('2d');
+    if (ext === 'jpeg') {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, c.width, c.height);
+    }
+    ctx.drawImage(img, 0, 0);
+    exportBlob = await new Promise((r) => c.toBlob(r, mimeType, 0.95));
+  }
+
+  const url = URL.createObjectURL(exportBlob);
   const a = document.createElement('a');
-  a.href = item.url;
-  a.download = item.name;
+  a.href = url;
+  a.download = `${item.name}.${ext}`;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function downloadAll() {
@@ -182,7 +207,7 @@ async function downloadAll() {
   if (!done.length) return;
   const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
   const zip = new JSZip();
-  done.forEach((item) => zip.file(item.name, item.blob));
+  done.forEach((item) => zip.file(`${item.name}.png`, item.blob));
   const zipBlob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(zipBlob);
   const a = document.createElement('a');
@@ -190,6 +215,33 @@ async function downloadAll() {
   a.download = `cleaned_images_${Date.now()}.zip`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ── Slider dragging logic for result item ──
+let activeDraggingItem = null;
+
+function onSliderPointerDown(e, item) {
+  activeDraggingItem = item;
+  updateSliderPos(e, item);
+}
+
+function updateSliderPos(e, item) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+  item.sliderPos = (x / rect.width) * 100;
+}
+
+function onSliderPointerMove(e) {
+  if (!activeDraggingItem) return;
+  const el = e.currentTarget;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+  activeDraggingItem.sliderPos = (x / rect.width) * 100;
+}
+
+function onSliderPointerUp() {
+  activeDraggingItem = null;
 }
 
 // ── Advanced tuner ──────────────────────────────────────────────
@@ -216,7 +268,6 @@ async function startTuner(file, engine, initialConfig = null) {
     tunerOrigSrc.value = f.src;
     tunerFrame.value = { width: f.width, height: f.height, imageData: f.imageData };
     
-    // Set base from engine geometry or initial config
     const base = initialConfig || engine.getWatermarkInfo(f.width, f.height);
     tunerBase.value = base;
     tunerBgImg.value = engine.bg96;
@@ -386,76 +437,127 @@ function reset() {
           <div
             v-for="(item, i) in items"
             :key="i"
-            class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 liquid-glass-card rounded-2xl"
+            class="p-3 sm:p-4 liquid-glass-card rounded-2xl space-y-3"
           >
-            <!-- Original -->
-            <div class="liquid-glass-card rounded-xl overflow-hidden">
-              <div class="px-3 py-2 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-white/5">
-                <h3 class="font-bold text-slate-700 dark:text-slate-200 text-xs">Original</h3>
-                <div v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">
-                  {{ item.width }} × {{ item.height }} px
+            <!-- Card Header: Title + Mode Toggle (Side-by-Side vs Slider) -->
+            <div class="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2.5">
+              <div class="flex items-center gap-2 overflow-hidden">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate">{{ item.displayName }}</h3>
+                <span v-if="item.status === 'done' && item.config" class="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/15 px-2 py-0.5 rounded-full flex-shrink-0">
+                  {{ item.config.corner ? item.config.corner + ' Corner' : 'Auto-Located' }}
+                </span>
+              </div>
+
+              <!-- View Mode Toggle -->
+              <div v-if="item.status === 'done'" class="flex items-center gap-1 p-0.5 rounded-xl bg-black/5 dark:bg-white/5 text-xs font-bold">
+                <button
+                  @click="item.viewMode = 'sideBySide'"
+                  :class="['px-2.5 py-1 rounded-lg transition-all', item.viewMode === 'sideBySide' ? 'bg-white dark:bg-white/10 text-teal-500 shadow-sm' : 'text-slate-400 hover:text-slate-600']"
+                >
+                  Side-by-Side
+                </button>
+                <button
+                  @click="item.viewMode = 'slider'"
+                  :class="['px-2.5 py-1 rounded-lg transition-all', item.viewMode === 'slider' ? 'bg-white dark:bg-white/10 text-teal-500 shadow-sm' : 'text-slate-400 hover:text-slate-600']"
+                >
+                  Compare Slider
+                </button>
+              </div>
+            </div>
+
+            <!-- VIEW MODE 1: Side-by-Side -->
+            <div v-if="item.viewMode === 'sideBySide'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <!-- Original -->
+              <div class="liquid-glass-card rounded-xl overflow-hidden">
+                <div class="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-white/5">
+                  <span class="font-bold text-slate-700 dark:text-slate-300 text-[11px]">Original</span>
+                  <span v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">{{ item.width }}×{{ item.height }}</span>
+                </div>
+                <div class="p-2 checker flex justify-center h-48 sm:h-56">
+                  <img v-if="item.originalSrc" :src="item.originalSrc" class="max-h-full object-contain rounded mx-auto" />
                 </div>
               </div>
-              <div class="p-2 sm:p-3 checker flex justify-center h-48 sm:h-64">
-                <img v-if="item.originalSrc" :src="item.originalSrc" class="max-h-full object-contain rounded shadow-sm mx-auto" />
-                <div v-else class="flex items-center justify-center">
-                  <div class="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent"></div>
+
+              <!-- Cleaned -->
+              <div class="liquid-glass-card rounded-xl overflow-hidden border-teal-500/40 ring-1 ring-teal-500/20">
+                <div class="px-3 py-1.5 border-b border-teal-500/20 bg-teal-500/10 flex justify-between items-center">
+                  <span class="font-bold text-teal-600 dark:text-teal-400 text-[11px]">Cleaned</span>
+                  <span class="text-[10px] font-mono text-teal-500 font-bold">100% Lossless</span>
+                </div>
+                <div class="p-2 checker flex justify-center h-48 sm:h-56">
+                  <img v-if="item.status === 'done'" :src="item.url" class="max-h-full object-contain rounded mx-auto" />
+                  <p v-else class="text-xs font-semibold text-blue-500 self-center">Removing watermark...</p>
                 </div>
               </div>
             </div>
 
-            <!-- Cleaned -->
+            <!-- VIEW MODE 2: Live Interactive Compare Slider -->
             <div
-              class="liquid-glass-card rounded-xl overflow-hidden flex flex-col justify-between"
-              :class="item.status === 'done' ? 'border-teal-500/40 ring-1 ring-teal-500/20' : 'border-blue-500/30'"
+              v-else-if="item.status === 'done'"
+              class="relative w-full h-56 sm:h-72 rounded-xl overflow-hidden checker border border-teal-500/30 cursor-ew-resize select-none touch-none"
+              @pointerdown="onSliderPointerDown($event, item)"
+              @pointermove="onSliderPointerMove"
+              @pointerup="onSliderPointerUp"
+              @pointerleave="onSliderPointerUp"
             >
-              <div>
-                <div
-                  class="px-3 py-2 border-b flex items-center justify-between"
-                  :class="item.status === 'done' ? 'bg-teal-500/10 border-teal-500/20' : 'bg-blue-500/10 border-blue-500/20'"
+              <!-- Cleaned (after) base -->
+              <img :src="item.url" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" />
+              <!-- Original (before) clipped -->
+              <img :src="item.originalSrc" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" :style="{ clipPath: `inset(0 ${100 - item.sliderPos}% 0 0)` }" />
+
+              <!-- Labels -->
+              <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white backdrop-blur-md">Before</span>
+              <span class="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-600/90 text-white backdrop-blur-md">After</span>
+
+              <!-- Handle line -->
+              <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)] pointer-events-none" :style="{ left: `${item.sliderPos}%` }">
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white text-teal-600 shadow-lg flex items-center justify-center font-bold">
+                  <iconify-icon icon="ph:arrows-left-right-bold" width="14"></iconify-icon>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controls bar: Format selector + Download + Re-Tune + Copy -->
+            <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-2 pt-1 border-t border-black/5 dark:border-white/5">
+              <!-- Format Selector -->
+              <div class="flex items-center gap-1 text-xs font-semibold text-slate-500">
+                <span>Format:</span>
+                <select
+                  v-model="item.format"
+                  class="text-xs font-bold liquid-glass-pill rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
                 >
-                  <template v-if="item.status === 'done'">
-                    <div class="flex items-center gap-1.5">
-                      <iconify-icon icon="ph:check-circle-fill" width="16" class="text-teal-500"></iconify-icon>
-                      <span class="font-bold text-teal-600 dark:text-teal-400 text-xs">Cleaned</span>
-                    </div>
-                    <span v-if="item.config && item.config.detected" class="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-500/15 px-2 py-0.5 rounded-full">
-                      Auto-Located
-                    </span>
-                  </template>
-                  <span v-else class="font-bold text-blue-500 text-xs">Removing watermark…</span>
-                </div>
-                <div class="p-2 sm:p-3 checker flex justify-center h-48 sm:h-64">
-                  <img v-if="item.status === 'done'" :src="item.url" class="max-h-full object-contain rounded shadow-sm mx-auto" />
-                  <p v-else-if="item.status === 'error'" class="text-xs sm:text-sm font-semibold text-red-500 self-center">Failed to process</p>
-                  <p v-else class="text-xs sm:text-sm font-semibold text-blue-500 self-center">Removing watermark...</p>
-                </div>
+                  <option value="png">PNG (Lossless)</option>
+                  <option value="webp">WebP (Compact)</option>
+                  <option value="jpeg">JPG (High)</option>
+                </select>
               </div>
 
-              <div v-if="item.status === 'done'" class="p-2.5 sm:p-3 border-t border-teal-500/15 flex flex-wrap gap-2">
-                <button
-                  @click="downloadOne(item)"
-                  class="btn-micro-pop flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
-                >
-                  <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon> Download
-                </button>
-                <button
-                  @click="openTunerForItem(item)"
-                  class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
-                  title="Adjust watermark position manually"
-                >
-                  <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-blue-500"></iconify-icon>
-                  <span>Re-Tune</span>
-                </button>
-                <button
-                  @click="copyToClipboard(item, i)"
-                  class="btn-micro-pop liquid-glass-pill px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
-                  title="Copy to clipboard"
-                >
-                  <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-teal-500' : ''"></iconify-icon>
-                  <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
-                </button>
-              </div>
+              <div class="flex-1"></div>
+
+              <button
+                @click="downloadFormatted(item)"
+                class="btn-micro-pop flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 rounded-xl transition-all shadow-md shadow-teal-600/20"
+              >
+                <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon>
+                <span>Download {{ item.format.toUpperCase() }}</span>
+              </button>
+
+              <button
+                @click="openTunerForItem(item)"
+                class="btn-micro-pop liquid-glass-pill px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
+                title="Adjust watermark position manually"
+              >
+                <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-blue-500"></iconify-icon>
+                <span>Re-Tune</span>
+              </button>
+
+              <button
+                @click="copyToClipboard(item, i)"
+                class="btn-micro-pop liquid-glass-pill px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-500 rounded-xl transition-all flex items-center gap-1"
+              >
+                <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-teal-500' : ''"></iconify-icon>
+                <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -468,7 +570,7 @@ function reset() {
             <h2 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Actions</h2>
             <button
               v-if="doneItems.length === 1"
-              @click="downloadOne(doneItems[0])"
+              @click="downloadFormatted(doneItems[0])"
               class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-teal-500/25 transition-all duration-300"
             >
               <div class="absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-teal-400"></div>
