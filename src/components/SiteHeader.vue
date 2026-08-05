@@ -39,12 +39,12 @@ function closeMenu() {
       
       <!-- Brand Logo & Title -->
       <a href="/" class="flex items-center gap-2 sm:gap-2.5 overflow-hidden no-underline group select-none">
-        <div class="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500/20 via-cyan-500/20 to-purple-500/20 p-1 border border-white/60 dark:border-white/10 shadow-sm group-hover:scale-105 transition-transform duration-300">
+        <div class="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-teal-500/20 via-blue-500/20 to-indigo-500/20 p-1 border border-white/60 dark:border-white/10 shadow-sm group-hover:scale-105 transition-transform duration-300">
           <img src="/assets/logo.svg" :alt="brandConfig.name + ' Logo'" width="32" height="32" class="w-6 h-6 sm:w-8 sm:h-8 select-none" />
         </div>
         <div class="flex flex-col">
           <p class="text-base sm:text-lg md:text-xl font-extrabold text-slate-900 dark:text-white whitespace-nowrap tracking-tight leading-tight m-0">
-            GemClean <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-300">AI</span>
+            GemClean <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-blue-400 to-teal-300">AI</span>
           </p>
         </div>
       </a>
@@ -53,7 +53,7 @@ function closeMenu() {
       <div class="hidden md:flex items-center gap-3">
         <button
           @click="toggleTheme"
-          class="liquid-glass-pill p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          class="liquid-glass-pill p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/40"
           aria-label="Toggle Dark Mode"
         >
           <iconify-icon v-if="isDark" icon="ph:sun-bold" width="20"></iconify-icon>
@@ -68,7 +68,7 @@ function closeMenu() {
             :href="brandConfig.githubRepo"
             target="_blank"
             rel="noopener noreferrer"
-            class="liquid-glass-pill px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all flex items-center gap-1.5 font-semibold text-xs md:text-sm no-underline"
+            class="liquid-glass-pill px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-all flex items-center gap-1.5 font-semibold text-xs md:text-sm no-underline"
             aria-label="View source on GitHub"
           >
             <iconify-icon icon="mdi:github" width="18"></iconify-icon>
@@ -76,7 +76,7 @@ function closeMenu() {
           </a>
           <a
             href="/about.html"
-            class="liquid-glass-pill px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all flex items-center gap-1.5 font-semibold text-xs md:text-sm no-underline"
+            class="liquid-glass-pill px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-all flex items-center gap-1.5 font-semibold text-xs md:text-sm no-underline"
           >
             <span>About</span>
           </a>
@@ -146,7 +146,7 @@ function closeMenu() {
           @click="closeMenu"
           class="liquid-glass-pill flex items-center gap-2.5 p-3 rounded-xl text-slate-800 dark:text-slate-100 font-semibold text-sm no-underline"
         >
-          <iconify-icon icon="ph:info-bold" width="20" class="text-emerald-500"></iconify-icon>
+          <iconify-icon icon="ph:info-bold" width="20" class="text-teal-500"></iconify-icon>
           <span>About GemClean AI</span>
         </a>
       </div>

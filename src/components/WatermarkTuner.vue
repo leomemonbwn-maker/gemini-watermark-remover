@@ -77,25 +77,25 @@ defineExpose({ render });
         <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
           <span>Strength</span><span>{{ settings.gain.toFixed(2) }}×</span>
         </div>
-        <input type="range" min="0.1" max="3" step="0.05" v-model.number="settings.gain" class="w-full accent-emerald-500 cursor-pointer" />
+        <input type="range" min="0.1" max="3" step="0.05" v-model.number="settings.gain" class="w-full accent-teal-500 cursor-pointer" />
       </label>
       <label class="block">
         <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
           <span>Size</span><span>{{ settings.sizeScale.toFixed(2) }}×</span>
         </div>
-        <input type="range" min="0.5" max="2" step="0.05" v-model.number="settings.sizeScale" class="w-full accent-emerald-500 cursor-pointer" />
+        <input type="range" min="0.5" max="2" step="0.05" v-model.number="settings.sizeScale" class="w-full accent-teal-500 cursor-pointer" />
       </label>
       <label class="block">
         <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
           <span>Position X</span><span>{{ settings.offsetX }}px</span>
         </div>
-        <input type="range" min="-150" max="150" step="1" v-model.number="settings.offsetX" class="w-full accent-emerald-500 cursor-pointer" />
+        <input type="range" min="-150" max="150" step="1" v-model.number="settings.offsetX" class="w-full accent-teal-500 cursor-pointer" />
       </label>
       <label class="block">
         <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
           <span>Position Y</span><span>{{ settings.offsetY }}px</span>
         </div>
-        <input type="range" min="-150" max="150" step="1" v-model.number="settings.offsetY" class="w-full accent-emerald-500 cursor-pointer" />
+        <input type="range" min="-150" max="150" step="1" v-model.number="settings.offsetY" class="w-full accent-teal-500 cursor-pointer" />
       </label>
     </div>
   </div>
