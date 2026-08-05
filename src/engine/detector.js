@@ -1,6 +1,6 @@
-// Smart watermark location detector for Google Gemini & Veo outputs.
-// Scans the bottom-right area of an image using cross-correlation against the
-// sparkle template to automatically locate the watermark even if margins or sizes vary.
+// Smart 4-corner watermark location detector for Google Gemini & Veo outputs.
+// Scans all 4 corners (Bottom-Right, Bottom-Left, Top-Right, Top-Left) using cross-correlation
+// against the sparkle template to automatically locate the watermark even on cropped or edited images.
 
 import { calculateAlphaMap } from './alphaMap.js';
 
@@ -20,6 +20,7 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
         y: Math.max(0, imgH - defaultMargin - defaultSize),
         width: defaultSize,
         height: defaultSize,
+        corner: 'BR',
         detected: false
     };
 
@@ -28,15 +29,13 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
     }
 
     try {
-        // Candidate sizes to test
         const candidateSizes = [64, 48, 96, 80];
-        // Candidate margins (distance from right/bottom edge to watermark edge)
         const candidateMargins = [24, 32, 48, 64, 96, 128];
+        const corners = ['BR', 'BL', 'TR', 'TL'];
 
         let bestScore = -1;
         let bestConfig = null;
 
-        // Prepare temporary canvas for rasterizing template at candidate sizes
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
@@ -51,46 +50,64 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
             const tmplData = ctx.getImageData(0, 0, size, size);
             const alphaMap = calculateAlphaMap(tmplData);
 
-            for (const margin of candidateMargins) {
-                const x = imgW - margin - size;
-                const y = imgH - margin - size;
-
-                if (x < 0 || y < 0) continue;
-
-                // Compute alignment score: mean brightness under template alpha mask
-                let scoreSum = 0;
-                let alphaWeightSum = 0;
-
-                for (let row = 0; row < size; row += 2) { // Step by 2 for speed
-                    for (let col = 0; col < size; col += 2) {
-                        const alphaIdx = row * size + col;
-                        const a = alphaMap[alphaIdx];
-                        if (a < 0.1) continue;
-
-                        const imgIdx = ((y + row) * imgW + (x + col)) * 4;
-                        const r = imageData.data[imgIdx];
-                        const g = imageData.data[imgIdx + 1];
-                        const b = imageData.data[imgIdx + 2];
-                        const brightness = (r + g + b) / 3.0;
-
-                        scoreSum += brightness * a;
-                        alphaWeightSum += a;
+            for (const corner of corners) {
+                for (const margin of candidateMargins) {
+                    let x = 0, y = 0;
+                    if (corner === 'BR') {
+                        x = imgW - margin - size;
+                        y = imgH - margin - size;
+                    } else if (corner === 'BL') {
+                        x = margin;
+                        y = imgH - margin - size;
+                    } else if (corner === 'TR') {
+                        x = imgW - margin - size;
+                        y = margin;
+                    } else if (corner === 'TL') {
+                        x = margin;
+                        y = margin;
                     }
-                }
 
-                if (alphaWeightSum > 0) {
-                    const avgScore = scoreSum / alphaWeightSum;
-                    if (avgScore > bestScore) {
-                        bestScore = avgScore;
-                        bestConfig = {
-                            size,
-                            x,
-                            y,
-                            width: size,
-                            height: size,
-                            detected: true,
-                            score: avgScore
-                        };
+                    if (x < 0 || y < 0 || x + size > imgW || y + size > imgH) continue;
+
+                    let scoreSum = 0;
+                    let alphaWeightSum = 0;
+
+                    for (let row = 0; row < size; row += 2) {
+                        for (let col = 0; col < size; col += 2) {
+                            const alphaIdx = row * size + col;
+                            const a = alphaMap[alphaIdx];
+                            if (a < 0.1) continue;
+
+                            const imgIdx = ((y + row) * imgW + (x + col)) * 4;
+                            const r = imageData.data[imgIdx];
+                            const g = imageData.data[imgIdx + 1];
+                            const b = imageData.data[imgIdx + 2];
+                            const brightness = (r + g + b) / 3.0;
+
+                            scoreSum += brightness * a;
+                            alphaWeightSum += a;
+                        }
+                    }
+
+                    if (alphaWeightSum > 0) {
+                        const avgScore = scoreSum / alphaWeightSum;
+                        // Give slight preference to BR corner if scores are close
+                        const weightFactor = corner === 'BR' ? 1.05 : 1.0;
+                        const finalScore = avgScore * weightFactor;
+
+                        if (finalScore > bestScore) {
+                            bestScore = finalScore;
+                            bestConfig = {
+                                size,
+                                x,
+                                y,
+                                width: size,
+                                height: size,
+                                corner,
+                                detected: true,
+                                score: finalScore
+                            };
+                        }
                     }
                 }
             }

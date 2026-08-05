@@ -44,7 +44,21 @@ const pipelineSteps = [
   { icon: 'ph:check-circle-bold', label: 'Export Clean', desc: 'Re-encode pristine pixels to lossless PNG or H.264 MP4 with audio passthrough', color: 'teal' },
 ];
 
+const showShortcuts = ref(false);
+
+function handleKeyDown(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  
+  if (e.key === '?' || (e.ctrlKey && e.key === 'k')) {
+    e.preventDefault();
+    showShortcuts.value = !showShortcuts.value;
+  } else if (e.key === 'Escape') {
+    showShortcuts.value = false;
+  }
+}
+
 onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown);
   const initObserver = () => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -335,5 +349,54 @@ onMounted(() => {
 
     <SiteFooter />
     <SupportPopup />
+
+    <!-- Keyboard Shortcuts Floating Button -->
+    <button
+      @click="showShortcuts = true"
+      class="fixed bottom-4 left-4 z-40 liquid-glass-pill px-3 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-teal-500 shadow-lg flex items-center gap-1.5 transition-all"
+      title="Keyboard Shortcuts (? or Ctrl+K)"
+    >
+      <iconify-icon icon="ph:keyboard-bold" width="16"></iconify-icon>
+      <span class="hidden sm:inline">Shortcuts</span>
+      <kbd class="px-1 py-0.5 text-[9px] font-mono bg-black/10 dark:bg-white/10 rounded">?</kbd>
+    </button>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div
+      v-if="showShortcuts"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      @click.self="showShortcuts = false"
+    >
+      <div class="liquid-glass-card rounded-3xl p-6 max-w-md w-full shadow-2xl border border-white/20">
+        <div class="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3 mb-4">
+          <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+            <iconify-icon icon="ph:keyboard-bold" class="text-teal-500"></iconify-icon>
+            Keyboard Shortcuts
+          </h3>
+          <button @click="showShortcuts = false" class="text-slate-400 hover:text-white">
+            <iconify-icon icon="ph:x-bold" width="18"></iconify-icon>
+          </button>
+        </div>
+
+        <div class="space-y-2.5 text-xs font-medium">
+          <div class="flex justify-between items-center p-2 rounded-xl bg-black/5 dark:bg-white/5">
+            <span>Paste image from clipboard</span>
+            <kbd class="px-2 py-1 font-mono font-bold bg-teal-500/20 text-teal-600 dark:text-teal-300 rounded border border-teal-500/30">Ctrl + V</kbd>
+          </div>
+          <div class="flex justify-between items-center p-2 rounded-xl bg-black/5 dark:bg-white/5">
+            <span>Toggle shortcuts modal</span>
+            <div class="flex gap-1">
+              <kbd class="px-2 py-1 font-mono font-bold bg-teal-500/20 text-teal-600 dark:text-teal-300 rounded border border-teal-500/30">?</kbd>
+              <span class="text-slate-400">or</span>
+              <kbd class="px-2 py-1 font-mono font-bold bg-teal-500/20 text-teal-600 dark:text-teal-300 rounded border border-teal-500/30">Ctrl + K</kbd>
+            </div>
+          </div>
+          <div class="flex justify-between items-center p-2 rounded-xl bg-black/5 dark:bg-white/5">
+            <span>Close modal / Reset</span>
+            <kbd class="px-2 py-1 font-mono font-bold bg-teal-500/20 text-teal-600 dark:text-teal-300 rounded border border-teal-500/30">Esc</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

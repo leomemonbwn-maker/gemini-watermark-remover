@@ -4,10 +4,24 @@ import { brandConfig } from '../config/brandConfig.js';
 
 const isDark = ref(false);
 const isMenuOpen = ref(false);
+const deferredPrompt = ref(null);
 
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt.value = e;
+  });
 });
+
+async function installPwa() {
+  if (!deferredPrompt.value) return;
+  deferredPrompt.value.prompt();
+  const { outcome } = await deferredPrompt.value.userChoice;
+  if (outcome === 'accepted') {
+    deferredPrompt.value = null;
+  }
+}
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -51,6 +65,16 @@ function closeMenu() {
 
       <!-- Desktop Nav & Theme Toggle -->
       <div class="hidden md:flex items-center gap-3">
+        <!-- Install App PWA button -->
+        <button
+          v-if="deferredPrompt"
+          @click="installPwa"
+          class="liquid-glass-pill px-3 py-1.5 rounded-xl text-teal-600 dark:text-teal-400 hover:bg-teal-500/10 transition-all font-bold text-xs flex items-center gap-1.5 border border-teal-500/30"
+        >
+          <iconify-icon icon="ph:device-mobile-speaker-bold" width="16"></iconify-icon>
+          <span>Install App</span>
+        </button>
+
         <button
           @click="toggleTheme"
           class="liquid-glass-pill p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-teal-500 dark:hover:text-teal-400 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/40"
