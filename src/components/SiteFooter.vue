@@ -15,27 +15,27 @@ import { brandConfig } from '../config/brandConfig.js';
       <!-- Social links -->
       <nav
         aria-label="Social media links"
-        class="flex justify-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-slate-400 dark:text-slate-500"
+        class="flex justify-center gap-3 sm:gap-5 mt-3 sm:mt-4 text-slate-400 dark:text-slate-500"
       >
-        <a :href="brandConfig.socials.twitter" target="_blank" rel="noopener noreferrer"
-          class="liquid-glass-pill p-2 rounded-full hover:text-emerald-500 hover:scale-110 transition-all text-slate-600 dark:text-slate-400"
-          aria-label="Follow on Twitter / X"
-          ><iconify-icon icon="line-md:twitter-x" width="18"></iconify-icon
-        ></a>
-        <a :href="brandConfig.socials.instagram" target="_blank" rel="noopener noreferrer"
-          class="liquid-glass-pill p-2 rounded-full hover:text-pink-500 hover:scale-110 transition-all text-slate-600 dark:text-slate-400"
-          aria-label="Follow on Instagram"
-          ><iconify-icon icon="mdi:instagram" width="18"></iconify-icon
-        ></a>
         <a :href="brandConfig.socials.github" target="_blank" rel="noopener noreferrer"
           class="liquid-glass-pill p-2 rounded-full hover:text-emerald-500 hover:scale-110 transition-all text-slate-600 dark:text-slate-400"
           aria-label="View GitHub profile"
           ><iconify-icon icon="mdi:github" width="18"></iconify-icon
         ></a>
-        <a :href="brandConfig.socials.telegram" target="_blank" rel="noopener noreferrer"
+        <a :href="brandConfig.socials.twitter" target="_blank" rel="noopener noreferrer"
           class="liquid-glass-pill p-2 rounded-full hover:text-cyan-500 hover:scale-110 transition-all text-slate-600 dark:text-slate-400"
-          aria-label="Join Telegram"
-          ><iconify-icon icon="line-md:telegram" width="18"></iconify-icon
+          aria-label="Follow on Twitter / X"
+          ><iconify-icon icon="line-md:twitter-x" width="18"></iconify-icon
+        ></a>
+        <a :href="brandConfig.socials.linkedin" target="_blank" rel="noopener noreferrer"
+          class="liquid-glass-pill p-2 rounded-full hover:text-[#0077b5] hover:scale-110 transition-all text-slate-600 dark:text-slate-400"
+          aria-label="Connect on LinkedIn"
+          ><iconify-icon icon="mdi:linkedin" width="18"></iconify-icon
+        ></a>
+        <a :href="brandConfig.socials.instagram" target="_blank" rel="noopener noreferrer"
+          class="liquid-glass-pill p-2 rounded-full hover:text-pink-500 hover:scale-110 transition-all text-slate-600 dark:text-slate-400"
+          aria-label="Follow on Instagram"
+          ><iconify-icon icon="mdi:instagram" width="18"></iconify-icon
         ></a>
       </nav>
 
