@@ -52,13 +52,13 @@ function closeMenu() {
     <div class="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
       
       <!-- Brand Logo & Title -->
-      <a href="/" class="flex items-center gap-2 sm:gap-2.5 overflow-hidden no-underline group select-none">
-        <div class="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-teal-500/20 via-blue-500/20 to-indigo-500/20 p-1 border border-white/60 dark:border-white/10 shadow-sm group-hover:scale-105 transition-transform duration-300">
-          <img src="/assets/logo.svg" :alt="brandConfig.name + ' Logo'" width="32" height="32" class="w-6 h-6 sm:w-8 sm:h-8 select-none" />
+      <a href="/" class="flex items-center gap-2.5 overflow-hidden no-underline group select-none">
+        <div class="relative w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-500/30 via-blue-500/30 to-indigo-500/30 p-1 border border-white/80 dark:border-white/20 shadow-[0_4px_20px_rgba(0,242,254,0.3)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+          <img src="/assets/logo.svg" :alt="brandConfig.name + ' Logo'" width="36" height="36" class="w-7 h-7 sm:w-9 sm:h-9 select-none filter drop-shadow-md" />
         </div>
         <div class="flex flex-col">
           <p class="text-base sm:text-lg md:text-xl font-extrabold text-slate-900 dark:text-white whitespace-nowrap tracking-tight leading-tight m-0">
-            GemClean <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-blue-400 to-teal-300">AI</span>
+            GemClean <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500">AI</span>
           </p>
         </div>
       </a>
