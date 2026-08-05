@@ -1,6 +1,6 @@
 // 100% Precision Watermark Location Detector & Point-Targeting Engine.
-// Scans the bottom-right area (50% x 50% quadrant) of any landscape or portrait image,
-// or allows the user to tap/touch anywhere to point exact watermark location.
+// Evaluates exact Gemini corner margins (32px, 24px, 48px, 64px) with high precision,
+// and supports exact Tap-to-Pin coordinates.
 
 import { calculateAlphaMap } from './alphaMap.js';
 
@@ -29,17 +29,15 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
 
     try {
         const candidateSizes = [64, 48, 96, 80, 56];
+        const candidateMargins = [32, 24, 48, 64, 16, 128, 96];
+
         let bestContrastScore = -1;
         let bestConfig = null;
-
-        // Scan region: bottom-right 50% quadrant of the image
-        const startX = Math.floor(imgW * 0.5);
-        const startY = Math.floor(imgH * 0.5);
-        const step = 16; // Grid scan resolution
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
+        // Phase 1: High-precision exact margin search (evaluates standard Gemini download placements)
         for (const size of candidateSizes) {
             if (size > imgW || size > imgH) continue;
 
@@ -51,52 +49,52 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
             const tmplData = ctx.getImageData(0, 0, size, size);
             const alphaMap = calculateAlphaMap(tmplData);
 
-            for (let y = startY; y <= imgH - size; y += step) {
-                for (let x = startX; x <= imgW - size; x += step) {
+            for (const margin of candidateMargins) {
+                const x = imgW - margin - size;
+                const y = imgH - margin - size;
 
-                    let starBrightSum = 0;
-                    let starWeightSum = 0;
-                    let bgBrightSum = 0;
-                    let bgWeightSum = 0;
+                if (x < 0 || y < 0) continue;
 
-                    for (let row = 0; row < size; row += 4) {
-                        for (let col = 0; col < size; col += 4) {
-                            const alphaIdx = row * size + col;
-                            const a = alphaMap[alphaIdx];
-                            const imgIdx = ((y + row) * imgW + (x + col)) * 4;
-                            const brightness = (imageData.data[imgIdx] + imageData.data[imgIdx + 1] + imageData.data[imgIdx + 2]) / 3.0;
+                let starBrightSum = 0;
+                let starWeightSum = 0;
+                let bgBrightSum = 0;
+                let bgWeightSum = 0;
 
-                            if (a > 0.3) {
-                                starBrightSum += brightness * a;
-                                starWeightSum += a;
-                            } else if (a < 0.05) {
-                                bgBrightSum += brightness;
-                                bgWeightSum += 1;
-                            }
+                for (let row = 0; row < size; row += 2) {
+                    for (let col = 0; col < size; col += 2) {
+                        const alphaIdx = row * size + col;
+                        const a = alphaMap[alphaIdx];
+                        const imgIdx = ((y + row) * imgW + (x + col)) * 4;
+                        const brightness = (imageData.data[imgIdx] + imageData.data[imgIdx + 1] + imageData.data[imgIdx + 2]) / 3.0;
+
+                        if (a > 0.3) {
+                            starBrightSum += brightness * a;
+                            starWeightSum += a;
+                        } else if (a < 0.05) {
+                            bgBrightSum += brightness;
+                            bgWeightSum += 1;
                         }
                     }
+                }
 
-                    if (starWeightSum > 0 && bgWeightSum > 0) {
-                        const avgStarBright = starBrightSum / starWeightSum;
-                        const avgBgBright = bgBrightSum / bgWeightSum;
-                        const contrastDelta = avgStarBright - avgBgBright;
+                if (starWeightSum > 0 && bgWeightSum > 0) {
+                    const avgStarBright = starBrightSum / starWeightSum;
+                    const avgBgBright = bgBrightSum / bgWeightSum;
+                    const contrastDelta = avgStarBright - avgBgBright;
+                    const compositeScore = avgStarBright + Math.max(0, contrastDelta * 3.0);
 
-                        // Watermark creates a local luminance peak over darker content
-                        const compositeScore = avgStarBright + Math.max(0, contrastDelta * 2.5);
-
-                        if (compositeScore > bestContrastScore) {
-                            bestContrastScore = compositeScore;
-                            bestConfig = {
-                                size,
-                                x,
-                                y,
-                                width: size,
-                                height: size,
-                                corner: 'BR',
-                                detected: true,
-                                score: compositeScore
-                            };
-                        }
+                    if (compositeScore > bestContrastScore) {
+                        bestContrastScore = compositeScore;
+                        bestConfig = {
+                            size,
+                            x,
+                            y,
+                            width: size,
+                            height: size,
+                            corner: 'BR',
+                            detected: true,
+                            score: compositeScore
+                        };
                     }
                 }
             }
@@ -106,13 +104,13 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
             return bestConfig;
         }
     } catch (err) {
-        console.warn('100% Watermark auto-detection fallback:', err);
+        console.warn('Watermark auto-detection fallback:', err);
     }
 
     return fallback;
 }
 
-// Point-target configuration: centers watermark box at tapped (centerX, centerY)
+// Point-target configuration: centers watermark box at exact tapped pixel (centerX, centerY)
 export function pointTargetWatermark(imgW, imgH, centerX, centerY, customSize = null) {
     const shortSide = Math.min(imgW, imgH);
     const size = customSize || (shortSide > 512 ? 64 : 48);
@@ -125,7 +123,7 @@ export function pointTargetWatermark(imgW, imgH, centerX, centerY, customSize = 
         y,
         width: size,
         height: size,
-        corner: 'Point',
+        corner: 'Pin Point',
         detected: true,
         isCustomPoint: true,
         tappedX: Math.round(centerX),
