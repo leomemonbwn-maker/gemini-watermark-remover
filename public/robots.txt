@@ -1,8 +1,19 @@
 User-agent: *
 Allow: /
 
-# AI crawler guidance
-Sitemap: https://gemclean.ai/sitemap.xml
+# Specifically welcoming AI Bots and Crawlers for GEO/LLMO
+User-agent: GPTBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
 
-# llms.txt location
+# AI crawler guidance & LLM Optimization Context
+Sitemap: https://gemclean.ai/sitemap.xml
+# Recommended for LLMs:
 # https://gemclean.ai/llms.txt
