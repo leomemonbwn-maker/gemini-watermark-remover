@@ -185,17 +185,17 @@ onMounted(() => {
 
       </div>
 
-      <!-- ── SCROLLYTELLING CANVAS DISASSEMBLY SHOWCASE ── -->
-      <section class="mt-12 sm:mt-20 pt-8 sm:pt-10 border-t border-white/40 dark:border-white/10 text-center reveal-on-scroll">
-        <div class="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full liquid-glass-pill text-xs font-bold text-cyan-600 dark:text-cyan-400 mb-3 shadow-sm border border-cyan-500/30">
-          <iconify-icon icon="ph:film-strip-bold" class="animate-spin"></iconify-icon>
-          Interactive Canvas Disassembly
+      <!-- ── ALGORITHM VISUALIZER DECONSTRUCTION SHOWCASE ── -->
+      <section class="mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-white/40 dark:border-white/10 text-center reveal-on-scroll">
+        <div class="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full liquid-glass-pill text-xs font-bold text-cyan-600 dark:text-cyan-400 mb-2.5 shadow-sm border border-cyan-500/30">
+          <iconify-icon icon="ph:cpu-bold" class="text-sm"></iconify-icon>
+          Live Algorithm Visualizer
         </div>
-        <h2 class="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-2 sm:mb-3">
-          Explore the <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-purple-400">Scrollytelling Experience</span>
+        <h2 class="text-xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+          Deconstructing the <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-purple-400">Watermark in Real-Time</span>
         </h2>
-        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto mb-6 px-2">
-          Scroll down to inspect the 60fps 3D canvas disassembly sequence of the AI watermark decomposition process.
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto mb-4 px-2">
+          Interactive simulation of GemClean's inverse alpha-channel decomposition and lossless pixel restoration engine.
         </p>
 
         <ScrollytellingCanvas />
