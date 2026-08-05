@@ -13,14 +13,14 @@ export default {
       },
       colors: {
         theme: {
-          light: "#F7F9FB",
-          dark: "#1D1F24",
-          cardDark: "#262930",
+          light: "#F0F4F8",
+          dark: "#090D16",
+          cardDark: "#111827",
         },
         brand: {
-          primary: "#6366f1",
-          secondary: "#a855f7",
-          accent: "#ec4899",
+          primary: "#10b981",   /* Emerald Teal */
+          secondary: "#06b6d4", /* Electric Cyan */
+          accent: "#8b5cf6",    /* Royal Violet */
         },
         patreon: "#FF424D",
       },

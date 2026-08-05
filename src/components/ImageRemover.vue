@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
 import { cleanFrame } from '../engine/tuner.js';
 
@@ -17,9 +17,46 @@ function getEngine() {
 const fileInput = ref(null);
 const dragOver = ref(false);
 const items = ref([]); // { name, displayName, status, originalSrc, url, blob, width, height }
+const copiedIdx = ref(-1);
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
 const hasResults = computed(() => items.value.length > 0);
+
+async function copyToClipboard(item, idx) {
+  if (!item.blob) return;
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': item.blob })
+    ]);
+    copiedIdx.value = idx;
+    setTimeout(() => { copiedIdx.value = -1; }, 2500);
+  } catch (e) {
+    console.error('Failed to copy to clipboard', e);
+  }
+}
+
+function handlePaste(e) {
+  const pasteItems = e.clipboardData?.items;
+  if (!pasteItems) return;
+  const files = [];
+  for (const item of pasteItems) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) files.push(file);
+    }
+  }
+  if (files.length) {
+    handleFiles(files);
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('paste', handlePaste);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('paste', handlePaste);
+});
 
 // Advanced "tune-it-yourself" mode (off = default lossless auto removal)
 const advanced = ref(false);
@@ -219,7 +256,7 @@ function reset() {
 
 <template>
   <div
-    class="max-w-5xl mx-auto bg-white dark:bg-theme-cardDark rounded-3xl shadow-xl dark:shadow-none p-4 border border-gray-100 dark:border-gray-800 relative z-10 transition-colors"
+    class="max-w-5xl mx-auto glass-panel rounded-3xl p-6 border border-white/60 dark:border-white/10 shadow-2xl relative z-10 transition-all duration-300"
   >
     <!-- Advanced tuner -->
     <div v-if="tunerActive" class="animate-fade-in">
@@ -232,13 +269,13 @@ function reset() {
           </p>
         </div>
         <div class="w-full lg:w-60 flex-shrink-0">
-          <div class="bg-white dark:bg-theme-cardDark rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-5 space-y-3 sticky top-24">
+          <div class="glass-card rounded-2xl p-5 space-y-3 sticky top-24">
             <h2 class="font-bold text-slate-900 dark:text-white text-base">Export</h2>
             <label class="block">
               <div class="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Position preset</div>
               <select
                 v-model="presetId"
-                class="w-full text-xs font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 cursor-pointer"
+                class="w-full text-xs font-semibold bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 cursor-pointer backdrop-blur-md"
               >
                 <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
               </select>
@@ -247,13 +284,13 @@ function reset() {
             <button @click="resetTunerSettings" class="w-full text-xs font-semibold text-slate-500 hover:text-brand-primary transition-colors">
               Reset sliders to preset
             </button>
-            <button @click="downloadTuner" class="group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-brand-primary/30 transition-all">
-              <div class="absolute inset-0 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent group-hover:scale-110 transition-transform duration-500"></div>
+            <button @click="downloadTuner" class="group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-indigo-500/30 transition-all">
+              <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 group-hover:scale-110 transition-transform duration-500"></div>
               <div class="relative flex items-center justify-center gap-2">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download PNG
               </div>
             </button>
-            <button @click="reset" class="w-full py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:border-brand-primary hover:text-brand-primary rounded-xl font-bold transition-all">
+            <button @click="reset" class="w-full py-2.5 bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:border-brand-primary hover:text-brand-primary rounded-xl font-bold transition-all">
               Choose another image
             </button>
           </div>
@@ -264,11 +301,11 @@ function reset() {
     <!-- Upload area -->
     <div
       v-else-if="!hasResults"
-      class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] py-8 border-2 border-dashed rounded-2xl bg-gray-50/50 dark:bg-gray-800/50 transition-all cursor-pointer"
+      class="group relative flex flex-col items-center justify-center w-full min-h-[16rem] py-10 rounded-3xl glass-dropzone transition-all cursor-pointer shadow-inner"
       :class="
         dragOver
-          ? 'border-brand-primary bg-indigo-50/60 dark:bg-gray-800'
-          : 'border-gray-300 dark:border-gray-700 hover:bg-indigo-50/50 dark:hover:bg-gray-800 hover:border-brand-primary'
+          ? '!border-indigo-500 !bg-indigo-50/70 dark:!bg-indigo-950/40 shadow-2xl scale-[1.01]'
+          : ''
       "
       role="button"
       tabindex="0"
@@ -280,20 +317,24 @@ function reset() {
       @dragleave.prevent="dragOver = false"
       @drop.prevent="onDrop"
     >
-      <div class="flex flex-col items-center justify-center">
-        <div
-          class="w-14 h-14 bg-white dark:bg-gray-700 rounded-full shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"
-        >
-          <iconify-icon
-            icon="ph:upload-simple-bold"
-            class="text-2xl text-gray-400 dark:text-gray-300 group-hover:text-brand-primary"
-            aria-hidden="true"
-          ></iconify-icon>
+      <div class="flex flex-col items-center justify-center relative">
+        <div class="relative flex items-center justify-center mb-3">
+          <div class="absolute inset-0 rounded-full bg-indigo-500/30 dark:bg-purple-500/30 animate-ripple"></div>
+          <div class="absolute -inset-1 rounded-full bg-indigo-500/20 dark:bg-purple-500/20 animate-pulse-glow"></div>
+          <div
+            class="relative w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-white/60 dark:border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 backdrop-blur-md"
+          >
+            <iconify-icon
+              icon="ph:upload-simple-bold"
+              class="text-3xl text-indigo-500 dark:text-indigo-400 group-hover:text-purple-500 transition-colors"
+              aria-hidden="true"
+            ></iconify-icon>
+          </div>
         </div>
         <p
-          class="mb-1 text-base font-bold text-slate-700 dark:text-slate-200 group-hover:text-brand-primary transition-colors"
+          class="mb-1 text-base font-extrabold text-slate-800 dark:text-slate-100 group-hover:text-indigo-500 transition-colors tracking-tight"
         >
-          Click to upload or drag images
+          Click to upload, drag images, or <kbd class="px-2 py-0.5 text-xs font-mono font-bold bg-white/80 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-indigo-600 dark:text-indigo-400">Ctrl + V</kbd> to paste
         </p>
         <p class="text-sm text-slate-400 dark:text-slate-500">PNG, JPG, WebP · Multiple files supported</p>
         <div class="mt-4 flex flex-col items-center gap-1.5" @click.stop>

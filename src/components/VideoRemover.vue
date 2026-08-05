@@ -178,7 +178,7 @@ function reset() {
 
 <template>
   <div
-    class="max-w-5xl mx-auto bg-white dark:bg-theme-cardDark rounded-3xl shadow-xl dark:shadow-none p-4 border border-gray-100 dark:border-gray-800 relative z-10 transition-colors"
+    class="max-w-5xl mx-auto glass-panel rounded-3xl p-6 border border-white/60 dark:border-white/10 shadow-2xl relative z-10 transition-all duration-300"
   >
     <!-- Unsupported -->
     <div
@@ -193,18 +193,28 @@ function reset() {
     <!-- Upload -->
     <div
       v-else-if="status === 'idle'"
-      class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] py-8 border-2 border-dashed rounded-2xl bg-gray-50/50 dark:bg-gray-800/50 transition-all cursor-pointer"
-      :class="dragOver ? 'border-brand-primary bg-indigo-50/60 dark:bg-gray-800' : 'border-gray-300 dark:border-gray-700 hover:bg-indigo-50/50 dark:hover:bg-gray-800 hover:border-brand-primary'"
+      class="group relative flex flex-col items-center justify-center w-full min-h-[16rem] py-10 rounded-3xl glass-dropzone transition-all cursor-pointer shadow-inner"
+      :class="dragOver ? '!border-indigo-500 !bg-indigo-50/70 dark:!bg-indigo-950/40 shadow-2xl scale-[1.01]' : ''"
       role="button" tabindex="0" aria-label="Upload a video"
       @click="openPicker" @keydown.enter="openPicker"
       @dragover.prevent="dragOver = true" @dragenter.prevent="dragOver = true"
       @dragleave.prevent="dragOver = false" @drop.prevent="onDrop"
     >
-      <div class="flex flex-col items-center justify-center">
-        <div class="w-14 h-14 bg-white dark:bg-gray-700 rounded-full shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-          <iconify-icon icon="ph:video-camera-bold" class="text-2xl text-gray-400 dark:text-gray-300 group-hover:text-brand-primary" aria-hidden="true"></iconify-icon>
+      <div class="flex flex-col items-center justify-center relative">
+        <div class="relative flex items-center justify-center mb-3">
+          <div class="absolute inset-0 rounded-full bg-pink-500/30 dark:bg-purple-500/30 animate-ripple"></div>
+          <div class="absolute -inset-1 rounded-full bg-pink-500/20 dark:bg-purple-500/20 animate-pulse-glow"></div>
+          <div
+            class="relative w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-white/60 dark:border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 backdrop-blur-md"
+          >
+            <iconify-icon
+              icon="ph:video-camera-bold"
+              class="text-3xl text-purple-500 dark:text-pink-400 group-hover:text-pink-500 transition-colors"
+              aria-hidden="true"
+            ></iconify-icon>
+          </div>
         </div>
-        <p class="mb-1 text-base font-bold text-slate-700 dark:text-slate-200 group-hover:text-brand-primary transition-colors">
+        <p class="mb-1 text-base font-extrabold text-slate-800 dark:text-slate-100 group-hover:text-purple-500 transition-colors tracking-tight">
           Click to upload or drag a Gemini Veo video
         </p>
         <p class="text-sm text-slate-400 dark:text-slate-500">MP4, WebM, MOV · Audio is preserved</p>
@@ -213,7 +223,7 @@ function reset() {
             Watermark position:
             <select
               v-model="presetId"
-              class="text-xs font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 cursor-pointer"
+              class="text-xs font-semibold bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer backdrop-blur-md"
             >
               <option v-for="p in VIDEO_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
             </select>
@@ -221,7 +231,7 @@ function reset() {
           <p class="text-[11px] text-slate-400 dark:text-slate-500 max-w-xs">{{ currentPreset.desc }}</p>
         </div>
         <label class="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer" @click.stop>
-          <input type="checkbox" v-model="advanced" class="accent-brand-primary w-3.5 h-3.5" />
+          <input type="checkbox" v-model="advanced" class="accent-indigo-500 w-3.5 h-3.5" />
           Advanced: tune it yourself
         </label>
       </div>
