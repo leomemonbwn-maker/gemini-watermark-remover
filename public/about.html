@@ -231,8 +231,11 @@
       <h2 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-3">Support the Project</h2>
       <p class="max-w-md mx-auto mb-6 text-slate-600 dark:text-slate-400 font-medium leading-relaxed">This tool is free and will always stay free. If it saved you time, consider starring the repo on GitHub or supporting the development.</p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <a href="https://github.com/leomemonbwn-maker/gemini-watermark-remover" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-600/30 w-full sm:w-auto">
+        <a href="https://github.com/leomemonbwn-maker/gemini-watermark-remover" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg w-full sm:w-auto">
           <iconify-icon icon="mdi:github" width="20"></iconify-icon> Star on GitHub
+        </a>
+        <a href="upi://pay?pa=sekhmemon@ptyes&pn=GemClean%20AI&cu=INR" class="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-400 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-teal-500/30 w-full sm:w-auto">
+          <iconify-icon icon="pepicons-pop:smartphone-cutout" width="20"></iconify-icon> Donate via UPI
         </a>
       </div>
     </div>
@@ -313,6 +316,62 @@
         });
       }
     })();
+  </script>
+  <!-- Static Support Popup for About Page -->
+  <div id="staticSupportPopup" class="hidden-popup fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden liquid-glass border border-teal-500/30 support-popup" role="dialog" aria-modal="true" aria-label="Support GemClean AI" style="display: none;">
+    <button onclick="dismissStaticPopup()" aria-label="Dismiss support popup" class="absolute top-3 right-3 text-slate-400 hover:text-slate-200 transition-colors focus:outline-none rounded-full p-1 hover:bg-white/10">
+      <iconify-icon icon="ph:x-bold" width="14" aria-hidden="true"></iconify-icon>
+    </button>
+    <div class="p-4 sm:p-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-teal-500/30 to-blue-500/30 p-1 shrink-0 border border-white/20">
+          <img src="/assets/logo.svg" alt="GemClean AI Logo" class="w-6 h-6 drop-shadow-md" />
+        </div>
+        <div>
+          <p class="text-slate-900 dark:text-white font-extrabold text-sm leading-tight m-0">Keep GemClean AI Free!</p>
+          <p class="text-teal-500 dark:text-teal-400 text-[11px] font-semibold m-0">Support the Developer</p>
+        </div>
+      </div>
+      <p class="text-slate-600 dark:text-slate-300 text-xs mb-4 leading-relaxed font-medium">
+        Running this tool ad-free and open-source takes time and effort. If GemClean AI saved your day, consider buying me a coffee to help maintain the project! 
+      </p>
+      <a href="upi://pay?pa=sekhmemon@ptyes&pn=GemClean%20AI&cu=INR" class="btn-micro-pop flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white shadow-md shadow-teal-500/25 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 no-underline transition-all active:scale-95">
+        <iconify-icon icon="pepicons-pop:smartphone-cutout" width="18" aria-hidden="true"></iconify-icon> Donate via UPI
+      </a>
+      <button onclick="dismissStaticPopup()" class="mt-3 w-full text-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-[11px] font-semibold transition-colors">
+        Maybe Later
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ── Static Popup Logic for About Page ────────────────────────
+    const popupEl = document.getElementById("staticSupportPopup");
+    let popupVisible = false;
+
+    function showStaticPopup() {
+      if (!popupVisible) {
+        popupEl.style.display = "block";
+        // Force reflow
+        void popupEl.offsetWidth;
+        popupEl.classList.remove("hidden-popup");
+        popupVisible = true;
+      }
+    }
+
+    function dismissStaticPopup() {
+      popupEl.classList.add("hidden-popup");
+      setTimeout(() => {
+        popupEl.style.display = "none";
+        popupVisible = false;
+      }, 400);
+    }
+
+    // Show initially after 7s
+    setTimeout(showStaticPopup, 7000);
+    
+    // Show every 60s
+    setInterval(showStaticPopup, 60000);
   </script>
 </body>
 </html>

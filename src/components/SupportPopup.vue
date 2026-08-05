@@ -7,13 +7,19 @@ const visible = ref(false);
 const leaving = ref(false);
 
 onMounted(() => {
-  if (!sessionStorage.getItem(STORAGE_KEY)) {
-    setTimeout(() => { visible.value = true; }, 7000);
-  }
+  // Show initially after 7 seconds
+  setTimeout(() => { visible.value = true; }, 7000);
+  
+  // Show every 1 minute (60,000 ms)
+  setInterval(() => {
+    if (!visible.value) {
+      leaving.value = false;
+      visible.value = true;
+    }
+  }, 60000);
 });
 
 function dismiss() {
-  sessionStorage.setItem(STORAGE_KEY, '1');
   leaving.value = true;
   setTimeout(() => { visible.value = false; }, 400);
 }
