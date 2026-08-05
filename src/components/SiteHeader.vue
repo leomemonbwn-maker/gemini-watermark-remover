@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { brandConfig } from '../config/brandConfig.js';
 
 const isDark = ref(false);
 const isMenuOpen = ref(false);
@@ -28,15 +29,17 @@ function toggleMenu() {
 
 <template>
   <header
-    class="sticky top-0 z-50 bg-white/80 dark:bg-theme-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800"
+    class="sticky top-0 z-50 bg-white/65 dark:bg-slate-900/65 backdrop-blur-xl border-b border-white/60 dark:border-white/10 shadow-sm transition-colors duration-300"
   >
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2 overflow-hidden no-underline">
-        <img src="/assets/logo.svg" alt="Gemini Watermark Remover" width="40" height="40" class="w-10 h-10 select-none" />
+      <a href="/" class="flex items-center gap-2.5 overflow-hidden no-underline group">
+        <div class="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500/20 via-cyan-500/20 to-purple-500/20 p-1 border border-white/40 dark:border-white/10 shadow-sm group-hover:scale-105 transition-transform">
+          <img src="/assets/logo.svg" :alt="brandConfig.name + ' Logo'" width="36" height="36" class="w-8 h-8 select-none" />
+        </div>
         <p
-          class="text-lg md:text-xl font-bold text-slate-900 dark:text-white whitespace-nowrap tracking-tight m-0"
+          class="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white whitespace-nowrap tracking-tight m-0"
         >
-          Gemini Watermark <span class="text-brand-primary">Remover</span>
+          GemClean <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">AI</span>
         </p>
       </a>
 
@@ -52,10 +55,10 @@ function toggleMenu() {
 
         <nav
           aria-label="Site navigation"
-          class="flex-shrink-0 border-l border-gray-200 dark:border-gray-700 pl-4 flex items-center gap-3"
+          class="flex-shrink-0 border-l border-gray-200 dark:border-gray-700 pl-4 flex items-center gap-4"
         >
           <a
-            href="https://github.com/dearabhin/gemini-watermark-remover"
+            :href="brandConfig.githubRepo"
             target="_blank"
             rel="noopener noreferrer"
             class="text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white transition-colors flex items-center gap-1 font-semibold text-sm md:text-base"
@@ -65,24 +68,10 @@ function toggleMenu() {
             <span>GitHub</span>
           </a>
           <a
-            href="https://www.patreon.com/cw/AbhinKrishna/membership"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-slate-600 dark:text-slate-400 hover-patreon transition-colors flex items-center gap-1 font-semibold text-sm md:text-base"
-            aria-label="Support on Patreon"
-            title="Support on Patreon"
+            href="/about.html"
+            class="text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white transition-colors flex items-center gap-1 font-semibold text-sm md:text-base"
           >
-            <iconify-icon icon="simple-icons:patreon" width="22"></iconify-icon>
-            <span>Patreon</span>
-          </a>
-          <a
-            href="/donate/"
-            class="text-slate-600 dark:text-slate-400 hover-upi transition-colors flex items-center gap-1 font-semibold text-sm md:text-base"
-            aria-label="Donate via UPI"
-            title="Donate via UPI"
-          >
-            <iconify-icon icon="ph:hand-heart-bold" width="24"></iconify-icon>
-            <span>UPI</span>
+            <span>About</span>
           </a>
         </nav>
       </div>
@@ -111,7 +100,7 @@ function toggleMenu() {
       </button>
       
       <a
-        href="https://github.com/dearabhin/gemini-watermark-remover"
+        :href="brandConfig.githubRepo"
         target="_blank"
         rel="noopener noreferrer"
         class="flex items-center gap-3 p-2 rounded-md text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-semibold"
@@ -119,24 +108,14 @@ function toggleMenu() {
         <iconify-icon icon="mdi:github" width="24"></iconify-icon>
         <span>GitHub</span>
       </a>
-      
-      <a
-        href="https://www.patreon.com/cw/AbhinKrishna/membership"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="flex items-center gap-3 p-2 rounded-md text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-semibold"
-      >
-        <iconify-icon icon="simple-icons:patreon" width="22"></iconify-icon>
-        <span>Patreon</span>
-      </a>
 
       <a
-        href="/donate/"
+        href="/about.html"
         class="flex items-center gap-3 p-2 rounded-md text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-semibold"
       >
-        <iconify-icon icon="ph:hand-heart-bold" width="24"></iconify-icon>
-        <span>Donate via UPI</span>
+        <iconify-icon icon="ph:info-bold" width="24"></iconify-icon>
+        <span>About GemClean AI</span>
       </a>
     </div>
   </header>
-</template>
+</template>

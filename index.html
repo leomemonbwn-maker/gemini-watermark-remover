@@ -1,28 +1,25 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en" class="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<!-- ── Theme init (before paint, avoids flash) ── -->
+<!-- ── Theme init (Default to Emerald Midnight Dark Mode) ── -->
 <script>
-  if (
-    localStorage.theme === "dark" ||
-    (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
-  ) {
-    document.documentElement.classList.add("dark");
-  } else {
+  if (localStorage.theme === "light") {
     document.documentElement.classList.remove("dark");
+  } else {
+    document.documentElement.classList.add("dark");
   }
 </script>
 
 <!-- ── SEO ── -->
-<title>Gemini Watermark Remover – Remove AI Image &amp; Veo Video Watermark Free</title>
-<meta name="description" content="Free Gemini Watermark Remover to erase the visible ✦ sparkle watermark from Google Gemini AI images and the new Gemini Veo video watermark. 100% client-side, private &amp; lossless — no upload, works instantly in your browser." />
-<meta name="keywords" content="gemini watermark remover, remove gemini watermark, gemini ai watermark remover, gemini veo watermark remover, gemini veo video watermark remover, remove veo watermark, gemini video watermark remover, remove sparkle watermark, free watermark remover online, client side watermark remover, lossless watermark removal" />
-<meta name="author" content="Abhin Krishna" />
+<title>GemClean AI – Remove Gemini AI Image &amp; Veo Video Watermarks Free</title>
+<meta name="description" content="GemClean AI – Free, instant, and 100% private tool to erase visible ✦ sparkle watermarks from Google Gemini AI images and Veo videos losslessly in your browser." />
+<meta name="keywords" content="gemclean ai, gemclean, gemini watermark remover, remove gemini watermark, gemini ai watermark remover, gemini veo watermark remover, gemini veo video watermark remover, remove veo watermark, gemini video watermark remover, remove sparkle watermark, free watermark remover online, client side watermark remover, lossless watermark removal" />
+<meta name="author" content="GemClean AI" />
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-<link rel="canonical" href="https://removewatermark.dev/" />
+<link rel="canonical" href="https://gemclean.ai/" />
 <link rel="llms" type="text/plain" href="/llms.txt" />
 
 <!-- ── Theme color for mobile browsers ── -->
@@ -30,37 +27,37 @@
 
 <!-- ── Open Graph ── -->
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://removewatermark.dev/" />
-<meta property="og:title" content="Gemini Watermark Remover – Remove AI Image &amp; Veo Video Watermark Free" />
+<meta property="og:url" content="https://gemclean.ai/" />
+<meta property="og:title" content="GemClean AI – Remove AI Image &amp; Veo Video Watermark Free" />
 <meta property="og:description" content="Remove the visible ✦ sparkle watermark from Google Gemini AI images and Gemini Veo videos instantly. Free, private, lossless — processed entirely in your browser." />
-<meta property="og:image" content="https://removewatermark.dev/assets/og-image.jpg" />
+<meta property="og:image" content="https://gemclean.ai/assets/og-image.jpg" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:site_name" content="Gemini Watermark Remover" />
+<meta property="og:site_name" content="GemClean AI" />
 
 <!-- ── Twitter Card ── -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:site" content="@dearabhin" />
-<meta name="twitter:creator" content="@dearabhin" />
-<meta name="twitter:title" content="Gemini Watermark Remover – AI Image &amp; Veo Video Watermark Remover" />
-<meta name="twitter:description" content="Remove the visible ✦ sparkle watermark from Google Gemini AI images and Gemini Veo videos. 100% free, private, in-browser." />
-<meta name="twitter:image" content="https://removewatermark.dev/assets/og-image.jpg" />
+<meta name="twitter:site" content="@gemclean_ai" />
+<meta name="twitter:creator" content="@gemclean_ai" />
+<meta name="twitter:title" content="GemClean AI – AI Image &amp; Veo Video Watermark Remover" />
+<meta name="twitter:description" content="Remove visible ✦ sparkle watermarks from Google Gemini AI images and Gemini Veo videos. 100% free, private, in-browser." />
+<meta name="twitter:image" content="https://gemclean.ai/assets/og-image.jpg" />
 
 <!-- ── Structured Data: WebApplication ── -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Gemini Watermark Remover",
-  "url": "https://removewatermark.dev/",
-  "description": "Free browser-based Gemini Watermark Remover that erases the visible sparkle watermark from Google Gemini AI images and Gemini Veo videos using Reverse Alpha Blending. 100% client-side, lossless, private.",
+  "name": "GemClean AI",
+  "url": "https://gemclean.ai/",
+  "description": "Free browser-based GemClean AI that erases visible sparkle watermarks from Google Gemini AI images and Gemini Veo videos using Reverse Alpha Blending. 100% client-side, lossless, private.",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "Any",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "author": {
-    "@type": "Person",
-    "name": "Abhin Krishna",
-    "url": "https://github.com/dearabhin"
+    "@type": "Organization",
+    "name": "GemClean AI",
+    "url": "https://gemclean.ai"
   }
 }
 </script>
