@@ -13,16 +13,16 @@ export default {
       },
       colors: {
         theme: {
-          light: "#F0F4FA",
-          dark: "#060B18",
-          cardLight: "rgba(255, 255, 255, 0.72)",
-          cardDark: "rgba(10, 18, 36, 0.7)",
+          light: "#EAF5FE",
+          dark: "#030914",
+          cardLight: "rgba(235, 246, 255, 0.75)",
+          cardDark: "rgba(6, 16, 34, 0.7)",
         },
         brand: {
-          primary: "#2dd4bf",   /* Teal */
-          secondary: "#3b82f6", /* Blue */
-          accent: "#6366f1",    /* Indigo */
-          glow: "#5eead4",
+          primary: "#00F2FE",   /* Electric Aqua */
+          secondary: "#4FACFE", /* Crystal Water Blue */
+          accent: "#00C6FF",    /* Water Drop Cyan */
+          glow: "#70E1FF",
         },
         patreon: "#FF424D",
       },
