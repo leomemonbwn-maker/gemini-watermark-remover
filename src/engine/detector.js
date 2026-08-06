@@ -1,5 +1,5 @@
 // 100% Precision Watermark Location Detector & Point-Targeting Engine.
-// Evaluates exact Gemini corner margins (32px, 24px, 48px, 64px) with high precision,
+// Evaluates exact Gemini corner margins (32px, 24px, 48px, 64px) across 4 corners with high precision,
 // and supports exact Tap-to-Pin coordinates.
 
 import { calculateAlphaMap } from './alphaMap.js';
@@ -31,13 +31,13 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
         const candidateSizes = [64, 48, 96, 80, 56];
         const candidateMargins = [32, 24, 48, 64, 16, 128, 96];
 
-        let bestContrastScore = -1;
+        let bestContrastScore = 0;
         let bestConfig = null;
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-        // Phase 1: High-precision exact margin search (evaluates standard Gemini download placements)
+        // High-precision margin search across corners
         for (const size of candidateSizes) {
             if (size > imgW || size > imgH) continue;
 
@@ -50,51 +50,63 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
             const alphaMap = calculateAlphaMap(tmplData);
 
             for (const margin of candidateMargins) {
-                const x = imgW - margin - size;
-                const y = imgH - margin - size;
+                // Check all 4 corners: BR (Bottom-Right), BL (Bottom-Left), TR (Top-Right), TL (Top-Left)
+                const corners = [
+                    { name: 'BR', x: imgW - margin - size, y: imgH - margin - size },
+                    { name: 'BL', x: margin, y: imgH - margin - size },
+                    { name: 'TR', x: imgW - margin - size, y: margin },
+                    { name: 'TL', x: margin, y: margin }
+                ];
 
-                if (x < 0 || y < 0) continue;
+                for (const c of corners) {
+                    const { x, y, name } = c;
+                    if (x < 0 || y < 0 || x + size > imgW || y + size > imgH) continue;
 
-                let starBrightSum = 0;
-                let starWeightSum = 0;
-                let bgBrightSum = 0;
-                let bgWeightSum = 0;
+                    let starBrightSum = 0;
+                    let starWeightSum = 0;
+                    let bgBrightSum = 0;
+                    let bgWeightSum = 0;
 
-                for (let row = 0; row < size; row += 2) {
-                    for (let col = 0; col < size; col += 2) {
-                        const alphaIdx = row * size + col;
-                        const a = alphaMap[alphaIdx];
-                        const imgIdx = ((y + row) * imgW + (x + col)) * 4;
-                        const brightness = (imageData.data[imgIdx] + imageData.data[imgIdx + 1] + imageData.data[imgIdx + 2]) / 3.0;
+                    for (let row = 0; row < size; row += 2) {
+                        for (let col = 0; col < size; col += 2) {
+                            const alphaIdx = row * size + col;
+                            const a = alphaMap[alphaIdx];
+                            const imgIdx = ((y + row) * imgW + (x + col)) * 4;
+                            const brightness = (imageData.data[imgIdx] + imageData.data[imgIdx + 1] + imageData.data[imgIdx + 2]) / 3.0;
 
-                        if (a > 0.3) {
-                            starBrightSum += brightness * a;
-                            starWeightSum += a;
-                        } else if (a < 0.05) {
-                            bgBrightSum += brightness;
-                            bgWeightSum += 1;
+                            if (a > 0.3) {
+                                starBrightSum += brightness * a;
+                                starWeightSum += a;
+                            } else if (a < 0.05) {
+                                bgBrightSum += brightness;
+                                bgWeightSum += 1;
+                            }
                         }
                     }
-                }
 
-                if (starWeightSum > 0 && bgWeightSum > 0) {
-                    const avgStarBright = starBrightSum / starWeightSum;
-                    const avgBgBright = bgBrightSum / bgWeightSum;
-                    const contrastDelta = avgStarBright - avgBgBright;
-                    const compositeScore = avgStarBright + Math.max(0, contrastDelta * 3.0);
+                    if (starWeightSum > 0 && bgWeightSum > 0) {
+                        const avgStarBright = starBrightSum / starWeightSum;
+                        const avgBgBright = bgBrightSum / bgWeightSum;
+                        const contrastDelta = avgStarBright - avgBgBright;
 
-                    if (compositeScore > bestContrastScore) {
-                        bestContrastScore = compositeScore;
-                        bestConfig = {
-                            size,
-                            x,
-                            y,
-                            width: size,
-                            height: size,
-                            corner: 'BR',
-                            detected: true,
-                            score: compositeScore
-                        };
+                        // Require positive contrast delta (watermark star must be brighter than surrounding background)
+                        if (contrastDelta > 1.5) {
+                            const compositeScore = (contrastDelta * 5.0) + (avgStarBright * 0.2);
+
+                            if (compositeScore > bestContrastScore) {
+                                bestContrastScore = compositeScore;
+                                bestConfig = {
+                                    size,
+                                    x,
+                                    y,
+                                    width: size,
+                                    height: size,
+                                    corner: name,
+                                    detected: true,
+                                    score: compositeScore
+                                };
+                            }
+                        }
                     }
                 }
             }
@@ -130,3 +142,4 @@ export function pointTargetWatermark(imgW, imgH, centerX, centerY, customSize = 
         tappedY: Math.round(centerY)
     };
 }
+
