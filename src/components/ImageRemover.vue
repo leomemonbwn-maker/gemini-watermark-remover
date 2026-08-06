@@ -244,6 +244,43 @@ async function handleFiles(fileList) {
   }
 }
 
+async function handleImageClick(e, item) {
+  if (!item || !item.file || item.status !== 'done') return;
+  const imgEl = e.currentTarget;
+  if (!imgEl) return;
+  const rect = imgEl.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  const normX = Math.min(Math.max(clickX / rect.width, 0), 1);
+  const normY = Math.min(Math.max(clickY / rect.height, 0), 1);
+
+  const targetX = Math.round(normX * item.width);
+  const targetY = Math.round(normY * item.height);
+
+  const newConfig = pointTargetWatermark(item.width, item.height, targetX, targetY);
+
+  item.status = 'processing';
+  try {
+    const engine = await getEngine();
+    const result = await engine.process(item.file, newConfig);
+    item.status = 'done';
+    if (item.url) URL.revokeObjectURL(item.url);
+    item.url = URL.createObjectURL(result.blob);
+    item.blob = result.blob;
+    item.config = result.config;
+
+    calculatePSNR(result.originalSrc, result.blob).then((score) => {
+      if (score !== null) item.psnr = score;
+    });
+  } catch (err) {
+    console.error('Failed to re-target watermark:', err);
+    item.status = 'error';
+  }
+}
+
 async function downloadFormatted(item) {
   if (!item.blob) return;
   
@@ -549,39 +586,43 @@ function reset() {
                   <span v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">{{ item.width }}×{{ item.height }}</span>
                 </div>
 
-                <div class="p-2 checker flex justify-center h-48 sm:h-56 relative overflow-hidden">
+                <div class="p-2 checker flex items-center justify-center h-48 sm:h-56 relative overflow-hidden">
                   <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
                     <div class="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent absolute top-0 animate-pulse shadow-[0_0_15px_#00f2fe]"></div>
                     <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-transparent mb-2"></div>
                     <span class="text-xs font-mono font-extrabold text-cyan-300 tracking-wider animate-pulse">🔍 100% AI Scanning...</span>
                   </div>
 
-                  <img
-                    v-if="item.originalSrc"
-                    :src="item.originalSrc"
-                    class="max-h-full object-contain rounded mx-auto select-none"
-                  />
+                  <div class="relative inline-block max-h-full max-w-full">
+                    <img
+                      v-if="item.originalSrc"
+                      :src="item.originalSrc"
+                      class="max-h-44 sm:max-h-52 w-auto object-contain rounded mx-auto select-none cursor-crosshair transition-all hover:ring-2 hover:ring-neon-pink/50"
+                      title="Click/Tap anywhere on image to pinpoint watermark position!"
+                      @click="handleImageClick($event, item)"
+                    />
 
-                  <!-- Watermark Preview Overlay — pulsing target box on original -->
-                  <div
-                    v-if="item.status === 'done' && item.config"
-                    class="absolute pointer-events-none"
-                    :style="{
-                      left: `${(item.config.x / item.width) * 100}%`,
-                      top: `${(item.config.y / item.height) * 100}%`,
-                      width: `${(item.config.size / item.width) * 100}%`,
-                      height: `${(item.config.size / item.height) * 100}%`,
-                    }"
-                  >
-                    <div class="absolute inset-0 border-2 border-neon-pink/60 rounded animate-pulse"></div>
-                    <div class="absolute inset-[-4px] border border-neon-pink/20 rounded"></div>
-                    <!-- Crosshair lines -->
-                    <div class="absolute top-1/2 left-0 right-0 h-px bg-neon-pink/30"></div>
-                    <div class="absolute left-1/2 top-0 bottom-0 w-px bg-neon-pink/30"></div>
-                    <!-- Label -->
-                    <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] font-mono font-bold text-neon-pink bg-black/70 px-1.5 py-0.5 rounded whitespace-nowrap">
-                      WM DETECTED
-                    </span>
+                    <!-- Watermark Preview Overlay — pulsing target box directly on original image -->
+                    <div
+                      v-if="item.status === 'done' && item.config"
+                      class="absolute pointer-events-none transition-all duration-200"
+                      :style="{
+                        left: `${(item.config.x / item.width) * 100}%`,
+                        top: `${(item.config.y / item.height) * 100}%`,
+                        width: `${(item.config.size / item.width) * 100}%`,
+                        height: `${(item.config.size / item.height) * 100}%`,
+                      }"
+                    >
+                      <div class="absolute inset-0 border-2 border-neon-pink rounded animate-pulse shadow-[0_0_10px_#ff2d95]"></div>
+                      <div class="absolute inset-[-4px] border border-neon-pink/40 rounded"></div>
+                      <!-- Crosshair lines -->
+                      <div class="absolute top-1/2 left-0 right-0 h-px bg-neon-pink/60"></div>
+                      <div class="absolute left-1/2 top-0 bottom-0 w-px bg-neon-pink/60"></div>
+                      <!-- Label -->
+                      <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] font-mono font-bold text-white bg-neon-pink px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+                        {{ item.config.isCustomPoint ? '📍 PINNED' : '🎯 DETECTED' }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -18,12 +18,14 @@ function updatePositionFromPointer(e) {
   const canvas = mainCanvas.value;
   if (!canvas || !props.frame || !props.base) return;
   const rect = canvas.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
   const pointerX = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
   const pointerY = Math.min(Math.max(e.clientY - rect.top, 0), rect.height);
   
-  const scale = canvas.width / props.frame.width;
-  const imgX = pointerX / scale;
-  const imgY = pointerY / scale;
+  // Exact 1:1 image pixel coordinate from screen touch/click
+  const imgX = (pointerX / rect.width) * props.frame.width;
+  const imgY = (pointerY / rect.height) * props.frame.height;
   
   // Center watermark box at pointer location
   const currentSize = Math.round(props.base.size * (props.settings.sizeScale || 1));
