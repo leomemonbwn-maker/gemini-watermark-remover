@@ -1,32 +1,74 @@
 const CACHE_NAME = 'gemclean-v2';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './assets/logo.svg',
-  './assets/bg_48.png',
-  './assets/bg_96.png',
-  './manifest.json'
+const PRECACHE_URLS = [
+  '/',
+  '/index.html',
+  '/assets/logo.svg',
+  '/assets/bg_96.png',
+  '/assets/bg_48.png',
+  '/css/output.css',
+  '/fonts/montserrat-latin.woff2',
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+// Install — precache critical assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(PRECACHE_URLS);
+    })
   );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
+// Activate — clean old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => k !== CACHE_NAME && caches.delete(k)))
+      Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+      )
     )
   );
   self.clients.claim();
 });
 
-self.addEventListener('fetch', (e) => {
-  // Network-first with cache fallback
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+// Fetch — cache-first for assets, network-first for pages
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Skip non-GET and API requests
+  if (event.request.method !== 'GET' || url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Cache-first for fonts, images, css
+  if (
+    url.pathname.match(/\.(woff2?|ttf|otf|png|jpg|jpeg|webp|svg|gif|css|js)$/)
+  ) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Network-first for HTML pages
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
