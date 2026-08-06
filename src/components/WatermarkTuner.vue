@@ -80,7 +80,7 @@ function render() {
   const bw = wm.width * scale;
   const bh = wm.height * scale;
 
-  mctx.strokeStyle = '#00f2fe';
+  mctx.strokeStyle = '#FF2D95';
   mctx.lineWidth = 2;
   mctx.strokeRect(bx, by, bw, bh);
 
@@ -103,7 +103,7 @@ function render() {
     zctx.drawImage(offscreen, roi.x, roi.y, roi.width, roi.height, 0, 0, zoom.width, zoom.height);
     const sx = zoom.width / roi.width;
     const sy = zoom.height / roi.height;
-    zctx.strokeStyle = '#00f2fe';
+    zctx.strokeStyle = '#FF2D95';
     zctx.lineWidth = 2;
     zctx.strokeRect((wm.x - roi.x) * sx, (wm.y - roi.y) * sy, wm.width * sx, wm.height * sy);
   }
@@ -119,13 +119,13 @@ defineExpose({ render });
   <div>
     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start justify-center">
       <div class="flex flex-col items-center w-full sm:w-auto">
-        <span class="text-xs font-bold text-teal-600 dark:text-cyan-400 mb-1.5 flex items-center gap-1">
+        <span class="text-xs font-bold text-neon-cyan mb-1.5 flex items-center gap-1">
           <iconify-icon icon="ph:hand-swipe-left-bold"></iconify-icon>
           Touch & Drag to move target box
         </span>
         <canvas
           ref="mainCanvas"
-          class="rounded-xl border border-teal-500/40 max-w-full bg-black/5 dark:bg-white/5 cursor-crosshair touch-none shadow-lg"
+          class="rounded-xl border border-neon-pink/40 max-w-full bg-white/5 cursor-crosshair touch-none shadow-lg shadow-neon-pink/10"
           @pointerdown="onPointerDown"
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
@@ -133,35 +133,35 @@ defineExpose({ render });
         ></canvas>
       </div>
       <div class="flex flex-col items-center">
-        <span class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">Zoomed Preview</span>
-        <canvas ref="zoomCanvas" width="180" height="180" class="rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5" style="image-rendering: pixelated"></canvas>
+        <span class="text-xs font-bold text-slate-400 mb-1.5">Zoomed Preview</span>
+        <canvas ref="zoomCanvas" width="180" height="180" class="rounded-xl border border-white/10 bg-white/5" style="image-rendering: pixelated"></canvas>
       </div>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 mt-4">
       <label class="block">
-        <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
           <span>Strength</span><span>{{ settings.gain.toFixed(2) }}×</span>
         </div>
-        <input type="range" min="0.1" max="3" step="0.05" v-model.number="settings.gain" class="w-full accent-teal-500 cursor-pointer" />
+        <input type="range" min="0.1" max="3" step="0.05" v-model.number="settings.gain" class="w-full cursor-pointer" />
       </label>
       <label class="block">
-        <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
           <span>Size</span><span>{{ settings.sizeScale.toFixed(2) }}×</span>
         </div>
-        <input type="range" min="0.5" max="2" step="0.05" v-model.number="settings.sizeScale" class="w-full accent-teal-500 cursor-pointer" />
+        <input type="range" min="0.5" max="2" step="0.05" v-model.number="settings.sizeScale" class="w-full cursor-pointer" />
       </label>
       <label class="block">
-        <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
           <span>Position X</span><span>{{ settings.offsetX }}px</span>
         </div>
-        <input type="range" min="-300" max="300" step="1" v-model.number="settings.offsetX" class="w-full accent-teal-500 cursor-pointer" />
+        <input type="range" min="-300" max="300" step="1" v-model.number="settings.offsetX" class="w-full cursor-pointer" />
       </label>
       <label class="block">
-        <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
           <span>Position Y</span><span>{{ settings.offsetY }}px</span>
         </div>
-        <input type="range" min="-300" max="300" step="1" v-model.number="settings.offsetY" class="w-full accent-teal-500 cursor-pointer" />
+        <input type="range" min="-300" max="300" step="1" v-model.number="settings.offsetY" class="w-full cursor-pointer" />
       </label>
     </div>
   </div>

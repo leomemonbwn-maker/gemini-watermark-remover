@@ -141,6 +141,14 @@ async function runExport() {
     resultUrl.value = result.url || URL.createObjectURL(result.blob);
     downloadName.value = `clean_${currentFile.name.replace(/\.[^/.]+$/, '')}.mp4`;
     status.value = 'done';
+
+    // Browser notification when video completes
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('GemClean AI', {
+        body: 'Your video processing is complete! 🎬',
+        icon: '/assets/logo.svg',
+      });
+    }
   } catch (err) {
     console.error(err);
     fail(err?.message || 'Failed to process video.');
@@ -180,7 +188,7 @@ function reset() {
 
 <template>
   <div
-    class="max-w-5xl mx-auto liquid-glass rounded-3xl p-4 sm:p-6 shadow-2xl relative z-10 transition-all duration-300"
+    class="max-w-5xl mx-auto cyber-glass rounded-3xl p-4 sm:p-6 shadow-2xl relative z-10 transition-all duration-300"
   >
     <!-- Unsupported -->
     <div
@@ -188,7 +196,7 @@ function reset() {
       class="flex flex-col items-center justify-center w-full h-56 rounded-2xl bg-red-500/10 border border-red-500/30 text-center px-6"
     >
       <iconify-icon icon="ph:warning-circle-bold" width="36" class="text-red-500 mb-2"></iconify-icon>
-      <p class="font-bold text-red-600 dark:text-red-400">Your browser can't process video locally.</p>
+      <p class="font-bold text-red-400">Your browser can't process video locally.</p>
       <p class="text-xs sm:text-sm text-red-500/80 mt-1">Please try the latest Chrome, Edge, or Safari on desktop/mobile.</p>
     </div>
 
@@ -196,7 +204,7 @@ function reset() {
     <div
       v-else-if="status === 'idle'"
       class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] sm:min-h-[16rem] py-6 sm:py-10 px-4 rounded-3xl glass-dropzone transition-all cursor-pointer select-none"
-      :class="dragOver ? '!border-blue-500 !bg-blue-500/10 shadow-2xl scale-[1.01]' : ''"
+      :class="dragOver ? '!border-neon-purple !bg-neon-purple/10 shadow-neon-purple scale-[1.01]' : ''"
       role="button" tabindex="0" aria-label="Upload a video"
       @click="openPicker" @keydown.enter="openPicker"
       @dragover.prevent="dragOver = true" @dragenter.prevent="dragOver = true"
@@ -204,39 +212,39 @@ function reset() {
     >
       <div class="flex flex-col items-center justify-center relative text-center">
         <div class="relative flex items-center justify-center mb-2.5 sm:mb-3">
-          <div class="absolute inset-0 rounded-full bg-blue-500/25 animate-ripple"></div>
-          <div class="absolute -inset-1 rounded-full bg-indigo-500/20 animate-pulse-glow"></div>
+          <div class="absolute inset-0 rounded-full bg-neon-purple/25 animate-ripple"></div>
+          <div class="absolute -inset-1 rounded-full bg-neon-cyan/20 animate-pulse-glow"></div>
           <div
-            class="relative w-12 h-12 sm:w-16 sm:h-16 liquid-glass-pill rounded-full shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+            class="relative w-12 h-12 sm:w-16 sm:h-16 cyber-pill rounded-full shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
           >
             <iconify-icon
               icon="ph:video-camera-bold"
-              class="text-2xl sm:text-3xl text-blue-500 dark:text-blue-400 group-hover:text-indigo-400 transition-colors"
+              class="text-2xl sm:text-3xl text-neon-purple group-hover:text-neon-pink transition-colors"
               aria-hidden="true"
             ></iconify-icon>
           </div>
         </div>
         
-        <p class="mb-1 text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-100 group-hover:text-blue-500 transition-colors tracking-tight px-2">
+        <p class="mb-1 text-sm sm:text-base font-extrabold text-slate-100 group-hover:text-neon-purple transition-colors tracking-tight px-2">
           Click to upload or drag a Gemini Veo video
         </p>
-        <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-500">MP4, WebM, MOV · Audio is preserved</p>
+        <p class="text-xs sm:text-sm text-slate-500">MP4, WebM, MOV · Audio is preserved</p>
         
         <div class="mt-3 sm:mt-4 flex flex-col items-center gap-1.5" @click.stop>
-          <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
+          <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-400">
             <span>Watermark position:</span>
             <select
               v-model="presetId"
-              class="text-xs font-semibold liquid-glass-pill rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+              class="text-xs font-semibold cyber-pill rounded-lg px-2 py-1 text-slate-200 focus:outline-none cursor-pointer"
             >
               <option v-for="p in VIDEO_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
             </select>
           </label>
-          <p class="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 max-w-xs leading-normal">{{ currentPreset.desc }}</p>
+          <p class="text-[10px] sm:text-[11px] text-slate-500 max-w-xs leading-normal">{{ currentPreset.desc }}</p>
         </div>
 
-        <label class="mt-2.5 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer" @click.stop>
-          <input type="checkbox" v-model="advanced" class="accent-blue-500 w-3.5 h-3.5 rounded" />
+        <label class="mt-2.5 inline-flex items-center gap-2 text-xs font-semibold text-slate-400 cursor-pointer" @click.stop>
+          <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
           <span>Advanced: tune it yourself</span>
         </label>
       </div>
@@ -245,8 +253,8 @@ function reset() {
 
     <!-- Loading the preview frame -->
     <div v-else-if="status === 'loading'" class="flex flex-col items-center justify-center w-full h-56">
-      <div class="w-12 h-12 rounded-full border-3 border-teal-500/20 border-t-teal-500 border-r-blue-500 animate-spin mb-3"></div>
-      <p class="font-bold text-teal-500 text-sm">Loading preview…</p>
+      <div class="w-12 h-12 rounded-full border-3 border-neon-cyan/20 border-t-neon-cyan border-r-neon-pink animate-spin mb-3"></div>
+      <p class="font-bold text-neon-cyan text-sm">Loading preview…</p>
     </div>
 
     <!-- Preview + manual controls -->
@@ -254,35 +262,34 @@ function reset() {
       <div class="flex flex-col lg:flex-row gap-6">
         <div class="flex-1 min-w-0">
           <WatermarkTuner :settings="settings" :frame="frame" :bg-img="bgImg" :base="base" />
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
+          <p class="text-xs text-slate-400 mt-3 leading-relaxed">
             Adjust the sliders until the watermark disappears in the zoomed corner. The
-            <span class="text-blue-500 font-semibold">blue box</span> shows what gets cleaned.
+            <span class="text-neon-cyan font-semibold">blue box</span> shows what gets cleaned.
           </p>
         </div>
 
         <div class="w-full lg:w-60 flex-shrink-0">
-          <div class="liquid-glass-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
-            <h2 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Export</h2>
+          <div class="cyber-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
+            <h2 class="font-bold text-white text-sm sm:text-base">Export</h2>
             <label class="block">
-              <div class="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Position preset</div>
+              <div class="text-xs font-bold text-slate-300 mb-1">Position preset</div>
               <select
                 v-model="presetId"
-                class="w-full text-xs font-semibold liquid-glass-pill rounded-xl px-2.5 py-2 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+                class="w-full text-xs font-semibold cyber-pill rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none cursor-pointer"
               >
                 <option v-for="p in VIDEO_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
               </select>
-              <p class="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-1">{{ currentPreset.desc }}</p>
+              <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1">{{ currentPreset.desc }}</p>
             </label>
-            <button @click="resetSettings" class="w-full text-xs font-semibold text-slate-500 hover:text-blue-500 transition-colors">
+            <button @click="resetSettings" class="w-full text-xs font-semibold text-slate-400 hover:text-neon-cyan transition-colors">
               Reset sliders to preset
             </button>
-            <button @click="runExport" class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-blue-500/25 transition-all">
-              <div class="absolute inset-0 bg-gradient-to-r from-blue-500 via-teal-500 to-indigo-500"></div>
-              <div class="relative flex items-center justify-center gap-2 text-xs sm:text-sm">
+            <button @click="runExport" class="btn-neon group w-full py-3 rounded-xl font-bold text-white shadow-lg shadow-neon-pink/25 transition-all">
+              <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:sparkle-fill" width="18"></iconify-icon> Remove &amp; Export
               </div>
             </button>
-            <button @click="reset" class="btn-micro-pop w-full py-2.5 liquid-glass-pill text-slate-600 dark:text-slate-300 hover:text-blue-500 rounded-xl font-bold text-xs sm:text-sm transition-all">
+            <button @click="reset" class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all">
               Choose another video
             </button>
           </div>
@@ -292,19 +299,19 @@ function reset() {
 
     <!-- Processing -->
     <div v-else-if="status === 'processing'" class="flex flex-col items-center justify-center w-full h-56 px-4 sm:px-8">
-      <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-blue-500/20 border-t-blue-500 border-r-indigo-500 animate-spin mb-4"></div>
-      <p class="font-bold text-blue-500 mb-3 text-sm sm:text-base">Cleaning &amp; re-encoding…</p>
-      <div class="w-full max-w-md h-2.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-teal-500 via-blue-500 to-indigo-500 transition-all duration-200" :style="{ width: `${Math.round(progress * 100)}%` }"></div>
+      <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-neon-pink/20 border-t-neon-pink border-r-neon-cyan animate-spin mb-4"></div>
+      <p class="font-bold text-neon-pink mb-3 text-sm sm:text-base">Cleaning &amp; re-encoding…</p>
+      <div class="w-full max-w-md h-2.5 rounded-full bg-white/10 overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan transition-all duration-200" :style="{ width: `${Math.round(progress * 100)}%` }"></div>
       </div>
-      <p class="text-xs text-slate-400 dark:text-slate-500 mt-2 font-medium">{{ Math.round(progress * 100) }}% — please keep this tab open.</p>
+      <p class="text-xs text-slate-500 mt-2 font-medium font-mono">{{ Math.round(progress * 100) }}% — please keep this tab open.</p>
     </div>
 
     <!-- Error -->
     <div v-else-if="status === 'error'" class="flex flex-col items-center justify-center w-full min-h-56 py-8 sm:py-10 text-center px-4 sm:px-6">
       <iconify-icon icon="ph:warning-circle-bold" width="36" class="text-red-500 mb-2"></iconify-icon>
-      <p class="font-bold text-red-600 dark:text-red-400 text-sm sm:text-base">{{ errorMsg }}</p>
-      <button @click="reset" class="btn-micro-pop mt-4 px-5 py-2.5 liquid-glass-pill text-slate-700 dark:text-slate-300 hover:text-teal-500 rounded-xl font-bold text-xs sm:text-sm transition-all">
+      <p class="font-bold text-red-400 text-sm sm:text-base">{{ errorMsg }}</p>
+      <button @click="reset" class="btn-micro-pop mt-4 px-5 py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all">
         Try Another Video
       </button>
     </div>
@@ -313,16 +320,16 @@ function reset() {
     <div v-else class="text-left mt-2 animate-fade-in">
       <div class="flex flex-col lg:flex-row gap-6">
         <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
-          <div class="liquid-glass-card rounded-xl overflow-hidden">
-            <div class="px-3 py-2 border-b border-black/5 dark:border-white/5 font-bold text-xs text-slate-700 dark:text-slate-200 bg-black/5 dark:bg-white/5">Original</div>
+          <div class="cyber-card rounded-xl overflow-hidden">
+            <div class="px-3 py-2 border-b border-white/5 font-bold text-xs text-slate-200 bg-white/5">Original</div>
             <div class="p-2 sm:p-3 checker flex justify-center">
               <video :src="originalUrl" controls playsinline class="max-h-60 sm:max-h-72 w-full object-contain rounded"></video>
             </div>
           </div>
-          <div class="liquid-glass-card rounded-xl overflow-hidden border-teal-500/40 ring-1 ring-teal-500/20">
-            <div class="bg-teal-500/10 px-3 py-2 border-b border-teal-500/20 flex items-center gap-1.5">
-              <iconify-icon icon="ph:check-circle-fill" width="16" class="text-teal-500"></iconify-icon>
-              <span class="font-bold text-teal-600 dark:text-teal-400 text-xs">Cleaned</span>
+          <div class="cyber-card rounded-xl overflow-hidden border-neon-cyan/30 ring-1 ring-neon-cyan/20">
+            <div class="bg-neon-cyan/10 px-3 py-2 border-b border-neon-cyan/20 flex items-center gap-1.5">
+              <iconify-icon icon="ph:check-circle-fill" width="16" class="text-neon-cyan"></iconify-icon>
+              <span class="font-bold text-neon-cyan text-xs">Cleaned</span>
             </div>
             <div class="p-2 sm:p-3 checker flex justify-center">
               <video :src="resultUrl" controls playsinline class="max-h-60 sm:max-h-72 w-full object-contain rounded"></video>
@@ -331,18 +338,17 @@ function reset() {
         </div>
 
         <div class="w-full lg:w-60 flex-shrink-0">
-          <div class="liquid-glass-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-2.5">
-            <h2 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Actions</h2>
-            <button @click="download" class="btn-micro-pop group w-full py-3 relative overflow-hidden rounded-xl font-bold text-white shadow-lg shadow-teal-500/25 transition-all duration-300">
-              <div class="absolute inset-0 bg-gradient-to-r from-teal-500 via-blue-500 to-teal-400"></div>
-              <div class="relative flex items-center justify-center gap-2 text-xs sm:text-sm">
+          <div class="cyber-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-2.5">
+            <h2 class="font-bold text-white text-sm sm:text-base">Actions</h2>
+            <button @click="download" class="btn-neon-cyan group w-full py-3 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300">
+              <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download MP4
               </div>
             </button>
-            <button v-if="advanced" @click="backToPreview" class="btn-micro-pop w-full py-2.5 liquid-glass-pill text-slate-700 dark:text-slate-300 hover:text-blue-500 rounded-xl font-bold text-xs sm:text-sm transition-all">
+            <button v-if="advanced" @click="backToPreview" class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-purple rounded-xl font-bold text-xs sm:text-sm transition-all">
               Adjust &amp; re-run
             </button>
-            <button @click="reset" class="btn-micro-pop w-full py-2.5 liquid-glass-pill text-slate-700 dark:text-slate-300 hover:text-blue-500 rounded-xl font-bold text-xs sm:text-sm transition-all">
+            <button @click="reset" class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all">
               Process Another
             </button>
           </div>
