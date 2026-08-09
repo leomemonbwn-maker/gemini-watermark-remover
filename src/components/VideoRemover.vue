@@ -1,6 +1,9 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
+import { useI18n } from '../config/i18n.js';
+
+const { t } = useI18n();
 
 let enginePromise = null;
 function getEngine() {
@@ -289,8 +292,12 @@ function reset() {
                 <iconify-icon icon="ph:sparkle-fill" width="18"></iconify-icon> Remove &amp; Export
               </div>
             </button>
-            <button @click="reset" class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all">
-              Choose another video
+            <button
+              @click="reset"
+              class="btn-cyber-secondary btn-micro-pop"
+            >
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+              <span>{{ t('processAnother') }}</span>
             </button>
           </div>
         </div>
@@ -311,8 +318,12 @@ function reset() {
     <div v-else-if="status === 'error'" class="flex flex-col items-center justify-center w-full min-h-56 py-8 sm:py-10 text-center px-4 sm:px-6">
       <iconify-icon icon="ph:warning-circle-bold" width="36" class="text-red-500 mb-2"></iconify-icon>
       <p class="font-bold text-red-400 text-sm sm:text-base">{{ errorMsg }}</p>
-      <button @click="reset" class="btn-micro-pop mt-4 px-5 py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all">
-        Try Another Video
+      <button
+        @click="reset"
+        class="btn-cyber-secondary btn-micro-pop !w-auto mt-4"
+      >
+        <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+        <span>{{ t('processAnother') }}</span>
       </button>
     </div>
 
@@ -348,8 +359,12 @@ function reset() {
             <button v-if="advanced" @click="backToPreview" class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-purple rounded-xl font-bold text-xs sm:text-sm transition-all">
               Adjust &amp; re-run
             </button>
-            <button @click="reset" class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all">
-              Process Another
+            <button
+              @click="reset"
+              class="btn-cyber-secondary btn-micro-pop mt-2"
+            >
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+              <span>{{ t('processAnother') }}</span>
             </button>
           </div>
         </div>

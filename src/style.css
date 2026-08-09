@@ -349,6 +349,40 @@ body::after {
   transform: translateY(-1px);
 }
 
+/* Cyber Secondary Button (High contrast, modern glass glow) */
+.btn-cyber-secondary {
+  position: relative;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(18, 18, 30, 0.9));
+  color: #E8E8F0;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 0.75rem;
+  padding: 0.7rem 1.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.btn-cyber-secondary:hover {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(176, 38, 255, 0.1));
+  color: #FFFFFF;
+  border-color: rgba(0, 240, 255, 0.7);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3), 0 4px 15px rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-cyber-secondary:active {
+  transform: scale(0.97);
+}
+
 /* Backward compat */
 .btn-micro-pop {
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;

@@ -5,6 +5,9 @@ import GeminiAnalyst from './GeminiAnalyst.vue';
 import { cleanFrame } from '../engine/tuner.js';
 import { pointTargetWatermark } from '../engine/detector.js';
 import { addEntry } from '../config/historyStore.js';
+import { useI18n } from '../config/i18n.js';
+
+const { t } = useI18n();
 
 // PSNR quality score calculation
 function calculatePSNR(originalSrc, cleanedBlob) {
@@ -472,8 +475,12 @@ function reset() {
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download PNG
               </div>
             </button>
-            <button @click="reset" class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all">
-              Choose another image
+            <button
+              @click="reset"
+              class="btn-cyber-secondary btn-micro-pop"
+            >
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+              <span>{{ t('processAnother') }}</span>
             </button>
           </div>
         </div>
@@ -770,9 +777,10 @@ function reset() {
             </button>
             <button
               @click="reset"
-              class="btn-micro-pop w-full py-2.5 cyber-pill text-slate-300 hover:text-neon-cyan rounded-xl font-bold text-xs sm:text-sm transition-all duration-300"
+              class="btn-cyber-secondary btn-micro-pop mt-2"
             >
-              Process Another
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+              <span>{{ t('processAnother') }}</span>
             </button>
           </div>
         </div>
