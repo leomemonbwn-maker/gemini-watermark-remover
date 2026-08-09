@@ -754,13 +754,13 @@ function reset() {
         <!-- Actions sidebar -->
         <div class="w-full lg:w-60 flex-shrink-0">
           <div
-            class="cyber-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-2.5"
+            class="cyber-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-3"
           >
             <h2 class="font-bold text-white text-sm sm:text-base">Actions</h2>
             <button
               v-if="doneItems.length === 1"
               @click="downloadFormatted(doneItems[0])"
-              class="btn-neon-cyan group w-full py-3 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300"
+              class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300"
             >
               <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download
@@ -769,7 +769,7 @@ function reset() {
             <button
               v-if="doneItems.length > 1"
               @click="downloadAll"
-              class="btn-neon group w-full py-3 rounded-xl font-bold text-white shadow-lg shadow-neon-pink/25 transition-all duration-300"
+              class="btn-neon group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-pink/25 transition-all duration-300"
             >
               <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:file-zip-bold" width="18"></iconify-icon> Download All ZIP
@@ -777,7 +777,7 @@ function reset() {
             </button>
             <button
               @click="reset"
-              class="btn-cyber-secondary btn-micro-pop mt-2"
+              class="btn-cyber-secondary btn-micro-pop"
             >
               <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
               <span>{{ t('processAnother') }}</span>
