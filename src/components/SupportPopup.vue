@@ -6,6 +6,7 @@ import { useI18n } from '../config/i18n.js';
 const { t } = useI18n();
 
 const visible = ref(false);
+const btnRef = ref(null);
 
 function toggle() {
   visible.value = !visible.value;
@@ -36,18 +37,17 @@ defineExpose({ toggle, dismiss });
     <!-- Backdrop overlay for mobile & desktop to easily close popup on tap outside -->
     <div
       v-if="visible"
-      class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[54] animate-fade-in"
+      class="donate-backdrop"
       @click="dismiss"
     ></div>
 
     <!-- Floating Donate Toggle Button -->
     <button
+      ref="btnRef"
       @click.stop="toggle"
       @touchend.stop.prevent="toggle"
-      class="fixed bottom-3.5 right-3.5 z-[60] group flex items-center gap-1.5 rounded-full shadow-2xl transition-all duration-300 overflow-hidden min-h-[48px] min-w-[48px] px-4 py-3 active:scale-95 cursor-pointer touch-manipulation"
-      :class="visible
-        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
-        : 'bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan text-white hover:scale-105 hover:shadow-neon-pink/40 animate-pulse-slow'"
+      class="donate-toggle-btn"
+      :class="visible ? 'donate-toggle-active' : 'donate-toggle-default'"
       aria-label="Toggle donation popup"
       :title="visible ? 'Close' : 'Support this project ❤️'"
     >
@@ -60,13 +60,13 @@ defineExpose({ toggle, dismiss });
       <span class="text-xs font-bold select-none">{{ visible ? 'Close' : 'Donate' }}</span>
     </button>
 
-    <!-- Floating Donation Popup (Centered nicely on mobile via left-4 right-4) -->
+    <!-- Floating Donation Popup — anchored above the toggle button -->
     <div
       v-if="visible"
       role="dialog"
       aria-modal="true"
       aria-label="Support GemClean AI"
-      class="fixed bottom-[4.5rem] left-4 right-4 sm:left-auto sm:right-6 sm:w-80 max-w-sm mx-auto z-[58] rounded-2xl shadow-2xl overflow-hidden neu-card border border-white/15 animate-slide-up"
+      class="donate-popup neu-card animate-slide-up"
     >
       <div class="p-4 sm:p-5">
         <!-- Header -->
@@ -127,11 +127,84 @@ defineExpose({ toggle, dismiss });
 </template>
 
 <style scoped>
+/* ── Toggle Button ────────────────────────────────── */
+.donate-toggle-btn {
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  box-shadow: 0 10px 25px -3px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 12px 16px;
+  cursor: pointer;
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+}
+.donate-toggle-btn:active {
+  transform: scale(0.95);
+}
+.donate-toggle-default {
+  background: linear-gradient(to right, #ec4899, #a855f7, #06b6d4);
+  color: white;
+}
+.donate-toggle-default:hover {
+  transform: scale(1.05);
+}
+.donate-toggle-active {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.donate-toggle-active:hover {
+  background: #334155;
+}
+
+/* ── Backdrop ─────────────────────────────────────── */
+.donate-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 54;
+  animation: fade-in 0.2s ease-out both;
+}
+
+/* ── Popup Dialog ─────────────────────────────────── */
+.donate-popup {
+  position: fixed;
+  /* Position above the toggle button on all devices */
+  bottom: 72px;
+  right: 14px;
+  width: calc(100vw - 28px);
+  max-width: 320px;
+  z-index: 58;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* On larger screens, anchor to right side */
+@media (min-width: 640px) {
+  .donate-popup {
+    right: 24px;
+    width: 320px;
+  }
+}
+
+/* ── Animations ───────────────────────────────────── */
 @keyframes pulse-slow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
   50% { box-shadow: 0 0 0 8px rgba(236, 72, 153, 0); }
 }
-.animate-pulse-slow {
+.donate-toggle-default {
   animation: pulse-slow 3s ease-in-out infinite;
 }
 @keyframes slide-up {
@@ -144,8 +217,5 @@ defineExpose({ toggle, dismiss });
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-.animate-fade-in {
-  animation: fade-in 0.2s ease-out both;
 }
 </style>

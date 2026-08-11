@@ -1,7 +1,7 @@
-// Full-Image Multi-Scale Sliding Window Watermark Detector.
-// Scans the ENTIRE image at multiple template scales to find all Gemini sparkle
-// watermarks — not just corners.  Returns an array of non-overlapping detections
-// sorted by confidence score.
+// Corner-Based Multi-Scale Watermark Detector.
+// Scans image CORNERS at multiple template scales to find Gemini sparkle
+// watermarks.  Gemini always places the watermark in corner/margin areas.
+// Returns an array of non-overlapping detections sorted by confidence score.
 
 import { calculateAlphaMap } from './alphaMap.js';
 
@@ -20,7 +20,7 @@ function computeIoU(a, b) {
     return inter / (areaA + areaB - inter);
 }
 
-function nms(detections, iouThreshold = 0.3, maxDetections = 8) {
+function nms(detections, iouThreshold = 0.3, maxDetections = 4) {
     // Sort descending by score
     const sorted = detections.slice().sort((a, b) => b.score - a.score);
     const kept = [];
@@ -40,8 +40,8 @@ function nms(detections, iouThreshold = 0.3, maxDetections = 8) {
     return kept;
 }
 
-// ── Multi-Scale Sliding Window Scanner ───────────────────────────────────────
-// Returns WatermarkDetection[] — every distinct watermark found in the image.
+// ── Corner-Based Multi-Scale Scanner ─────────────────────────────────────────
+// Returns WatermarkDetection[] — every distinct watermark found in corners.
 
 export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
     const imgW = imageData.width;
@@ -109,15 +109,11 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
             // Need enough template structure to be meaningful
             if (starPixels.length < 8 || bgPixels.length < 8) continue;
 
-            // Sliding window stride — balance speed vs coverage
-            // Use a coarser stride to reduce false positives and speed up scanning.
-            const stride = Math.max(8, Math.floor(size / 2));
-
-            // ── Phase 1: Fast corner scan (original margins, all 4 corners) ──
-            // We scan corners with pixel-level precision first because they are
-            // by far the most common placement.  Use a LOWER threshold here
-            // since corner placement is strong prior evidence.
-            const CORNER_THRESHOLD = 4.0;
+            // ── Corner scan only ──
+            // Gemini ALWAYS places the watermark in corner/margin areas.
+            // We scan all 4 corners at various margins with the original
+            // sensitive threshold (1.5) that reliably detects the subtle
+            // semi-transparent sparkle overlay.
             const cornerMargins = [16, 24, 32, 48, 64, 96, 128];
             for (const margin of cornerMargins) {
                 const corners = [
@@ -131,7 +127,7 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
                     const { x, y, name } = c;
                     if (x < 0 || y < 0 || x + size > imgW || y + size > imgH) continue;
 
-                    const result = scoreRegion(pixels, imgW, x, y, starPixels, bgPixels, CORNER_THRESHOLD);
+                    const result = scoreRegion(pixels, imgW, x, y, starPixels, bgPixels);
                     if (result) {
                         rawCandidates.push({
                             size, x, y,
@@ -143,44 +139,11 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
                     }
                 }
             }
-
-            // ── Phase 2: Full-image sliding window ──
-            // Covers arbitrary placements the corner scan misses.
-            // Use a STRICT threshold here to prevent false positives from
-            // skin tones, textures, and other natural image patterns.
-            const SLIDING_THRESHOLD = 18.0;
-            const maxPositions = 100000; // hard cap on total windows per scale
-            let dynamicStride = stride;
-            const hSteps = Math.ceil((imgW - size) / dynamicStride);
-            const vSteps = Math.ceil((imgH - size) / dynamicStride);
-            if (hSteps * vSteps > maxPositions) {
-                dynamicStride = Math.ceil(Math.sqrt((imgW - size) * (imgH - size) / maxPositions));
-            }
-
-            for (let wy = 0; wy + size <= imgH; wy += dynamicStride) {
-                for (let wx = 0; wx + size <= imgW; wx += dynamicStride) {
-                    const result = scoreRegion(pixels, imgW, wx, wy, starPixels, bgPixels, SLIDING_THRESHOLD);
-                    if (result) {
-                        rawCandidates.push({
-                            size, x: wx, y: wy,
-                            width: size, height: size,
-                            corner: classifyCorner(wx, wy, size, imgW, imgH),
-                            detected: true,
-                            score: result.score,
-                        });
-                    }
-                }
-            }
         }
 
         if (rawCandidates.length > 0) {
-            // Filter out low-confidence candidates before NMS
-            const MIN_COMPOSITE_SCORE = 30;
-            const confident = rawCandidates.filter(c => c.score >= MIN_COMPOSITE_SCORE);
-            if (confident.length > 0) {
-                const detections = nms(confident, 0.3, 8);
-                return detections.length > 0 ? detections : [fallback];
-            }
+            const detections = nms(rawCandidates, 0.3, 4);
+            return detections.length > 0 ? detections : [fallback];
         }
     } catch (err) {
         console.warn('Watermark auto-detection fallback:', err);
@@ -192,7 +155,7 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
 // ── Score a candidate region ─────────────────────────────────────────────────
 // Returns { score } if the region looks like a watermark, or null otherwise.
 
-function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels, contrastThreshold) {
+function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels) {
     let starBrightSum = 0;
     let starWeightSum = 0;
 
@@ -215,11 +178,11 @@ function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels, contrastThreshold
     const avgBgBright = bgBrightSum / bgPixels.length;
     const contrastDelta = avgStarBright - avgBgBright;
 
-    // Watermark star pixels must be brighter than surrounding background.
-    // The threshold is passed in by the caller:
-    //   - Corner scan uses a lower value (~4) since corner placement is strong evidence
-    //   - Sliding window uses a higher value (~18) to prevent false positives
-    if (contrastDelta > contrastThreshold) {
+    // Watermark star must be brighter than surrounding background.
+    // Original threshold of 1.5 works reliably for the subtle Gemini
+    // sparkle overlay.  False positives are prevented by only scanning
+    // corner/margin positions (not the full image).
+    if (contrastDelta > 1.5) {
         const compositeScore = (contrastDelta * 5.0) + (avgStarBright * 0.2);
         return { score: compositeScore };
     }
