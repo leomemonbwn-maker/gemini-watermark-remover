@@ -329,7 +329,7 @@ function reset() {
 
     <!-- Done -->
     <div v-else class="text-left mt-2 animate-fade-in">
-      <div class="flex flex-col lg:flex-row gap-6">
+      <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
           <div class="cyber-card rounded-xl overflow-hidden">
             <div class="px-3 py-2 border-b border-white/5 font-bold text-xs text-slate-200 bg-white/5">Original</div>
@@ -348,7 +348,8 @@ function reset() {
           </div>
         </div>
 
-        <div class="w-full lg:w-60 flex-shrink-0">
+        <!-- Desktop sidebar -->
+        <div class="hidden lg:block w-60 flex-shrink-0">
           <div class="cyber-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-3">
             <h2 class="font-bold text-white text-sm sm:text-base">Actions</h2>
             <button @click="download" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300">
@@ -368,6 +369,29 @@ function reset() {
               <span>{{ t('processAnother') }}</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Mobile action buttons (always visible below videos) -->
+      <div class="lg:hidden mt-4">
+        <div class="cyber-card rounded-2xl p-4 space-y-3">
+          <h2 class="font-bold text-white text-sm">Actions</h2>
+          <button @click="download" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300">
+            <div class="flex items-center justify-center gap-2 text-sm">
+              <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download MP4
+            </div>
+          </button>
+          <button v-if="advanced" @click="backToPreview" class="btn-cyber-secondary btn-micro-pop">
+            <iconify-icon icon="ph:sliders-horizontal-bold" width="18" class="text-neon-purple"></iconify-icon>
+            <span>Adjust &amp; re-run</span>
+          </button>
+          <button
+            @click="reset"
+            class="btn-cyber-secondary btn-micro-pop"
+          >
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+            <span>{{ t('processAnother') }}</span>
+          </button>
         </div>
       </div>
     </div>
