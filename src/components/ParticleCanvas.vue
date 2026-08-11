@@ -249,7 +249,7 @@ onUnmounted(() => {
 <template>
   <canvas
     ref="canvas"
-    class="particle-canvas"
+    class="fixed inset-0 pointer-events-none z-0 particle-canvas"
     aria-hidden="true"
   />
 </template>

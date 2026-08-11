@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { brandConfig } from '../config/brandConfig.js';
 import { useI18n } from '../config/i18n.js';
 
@@ -9,14 +9,24 @@ const visible = ref(false);
 const leaving = ref(false);
 
 onMounted(() => {
-  setTimeout(() => { visible.value = true; }, 7000);
+  // First popup after 10 seconds
+  const initialTimer = setTimeout(() => {
+    leaving.value = false;
+    visible.value = true;
+  }, 10000);
   
-  setInterval(() => {
+  // Recurring popup every 30 seconds if dismissed
+  const intervalTimer = setInterval(() => {
     if (!visible.value) {
       leaving.value = false;
       visible.value = true;
     }
-  }, 60000);
+  }, 30000);
+
+  onUnmounted(() => {
+    clearTimeout(initialTimer);
+    clearInterval(intervalTimer);
+  });
 });
 
 function dismiss() {
