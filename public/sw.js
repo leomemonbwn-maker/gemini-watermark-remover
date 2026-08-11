@@ -2,7 +2,7 @@ const CACHE_NAME = 'gemclean-v2';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
-  '/assets/logo.svg',
+  '/assets/mascot-logo.png',
   '/assets/bg_96.png',
   '/assets/bg_48.png',
   '/css/output.css',

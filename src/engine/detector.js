@@ -68,8 +68,9 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
     }
 
     try {
-        const candidateSizes = [48, 56, 64, 80, 96];
-        const rawCandidates = [];
+        const candidateSizes = [64, 48];
+        let bestConfig = null;
+        let bestScore = -1;
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -114,7 +115,8 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
             // We scan all 4 corners at various margins with the original
             // sensitive threshold (1.5) that reliably detects the subtle
             // semi-transparent sparkle overlay.
-            const cornerMargins = [16, 24, 32, 48, 64, 96, 128];
+            // (We scan 0 to 128 to handle cropped images)
+            const cornerMargins = [32, 24, 16, 8, 0, 48, 64, 96, 128];
             for (const margin of cornerMargins) {
                 const corners = [
                     { name: 'BR', x: imgW - margin - size, y: imgH - margin - size },
@@ -128,22 +130,22 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
                     if (x < 0 || y < 0 || x + size > imgW || y + size > imgH) continue;
 
                     const result = scoreRegion(pixels, imgW, x, y, starPixels, bgPixels);
-                    if (result) {
-                        rawCandidates.push({
+                    if (result && result.score > bestScore) {
+                        bestScore = result.score;
+                        bestConfig = {
                             size, x, y,
                             width: size, height: size,
                             corner: name,
                             detected: true,
                             score: result.score,
-                        });
+                        };
                     }
                 }
             }
         }
 
-        if (rawCandidates.length > 0) {
-            const detections = nms(rawCandidates, 0.3, 4);
-            return detections.length > 0 ? detections : [fallback];
+        if (bestConfig) {
+            return [bestConfig];
         }
     } catch (err) {
         console.warn('Watermark auto-detection fallback:', err);

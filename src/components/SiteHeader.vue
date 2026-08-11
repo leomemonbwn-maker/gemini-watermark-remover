@@ -63,7 +63,7 @@ function selectLang(lang) {
       <!-- Brand Logo & Title -->
       <a href="/" class="flex items-center gap-2 overflow-hidden no-underline group select-none">
         <div class="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-neu-raised p-0.5 border border-white/5 shadow-sm group-hover:scale-105 transition-all duration-200">
-          <img src="/assets/logo.svg" :alt="brandConfig.name + ' Logo'" width="32" height="32" class="w-6 h-6 sm:w-7 sm:h-7 select-none filter drop-shadow-sm" />
+          <img src="/assets/mascot-logo.png" :alt="brandConfig.name + ' Logo'" width="32" height="32" class="w-6 h-6 sm:w-7 sm:h-7 select-none filter drop-shadow-sm" />
         </div>
         <div class="flex flex-col">
           <p class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap tracking-tight leading-tight m-0">

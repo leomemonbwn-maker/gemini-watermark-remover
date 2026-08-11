@@ -72,7 +72,7 @@ defineExpose({ toggle, dismiss });
         <!-- Header -->
         <div class="flex items-center gap-3 mb-3">
           <div class="relative w-11 h-11 flex items-center justify-center rounded-xl bg-neu-raised p-1 shrink-0 shadow-neu-raised-sm border border-white/5">
-            <img src="/assets/logo.svg" alt="GemClean AI Logo" class="w-6 h-6 drop-shadow-md" />
+            <img src="/assets/mascot-logo.png" alt="GemClean AI Logo" class="w-6 h-6 drop-shadow-md" />
           </div>
           <div>
             <p class="text-white font-extrabold text-sm leading-tight m-0">{{ t('keepFree') }}</p>

@@ -147,7 +147,7 @@ async function runExport() {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('GemClean AI', {
         body: 'Your video processing is complete! 🎬',
-        icon: '/assets/logo.svg',
+        icon: '/assets/mascot-logo.png',
       });
     }
   } catch (err) {
