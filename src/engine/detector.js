@@ -47,10 +47,10 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
     const imgW = imageData.width;
     const imgH = imageData.height;
 
-    const shortSide = Math.min(imgW, imgH);
-    const isLarge = shortSide > 512;
-    const defaultSize = isLarge ? 64 : 48;
-    const defaultMargin = isLarge ? 32 : 24;
+    const minSide = Math.min(imgW, imgH);
+    const isLarge = minSide > 1024;
+    const defaultSize = isLarge ? 96 : 48;
+    const defaultMargin = isLarge ? 64 : 32;
 
     const fallback = {
         size: defaultSize,
@@ -68,7 +68,7 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
     }
 
     try {
-        const candidateSizes = [64, 48];
+        const candidateSizes = [48, 96];
         let bestConfig = null;
         let bestScore = -1;
 
@@ -110,12 +110,28 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
             // Need enough template structure to be meaningful
             if (starPixels.length < 8 || bgPixels.length < 8) continue;
 
-            // ── Corner scan only ──
-            // Gemini ALWAYS places the watermark in corner/margin areas.
-            // We scan all 4 corners at various margins with the original
-            // sensitive threshold (1.5) that reliably detects the subtle
-            // semi-transparent sparkle overlay.
-            // (We scan 0 to 128 to handle cropped images)
+            // ── Priority 1: Exact Default Location ──
+            // Gemini always places the watermark at an exact standard location.
+            // If we detect it here, return immediately to prevent textured backgrounds
+            // in other corners from generating higher-scoring false positives.
+            if (size === defaultSize) {
+                const defaultX = imgW - defaultMargin - size;
+                const defaultY = imgH - defaultMargin - size;
+                if (defaultX >= 0 && defaultY >= 0 && defaultX + size <= imgW && defaultY + size <= imgH) {
+                    const result = scoreRegion(pixels, imgW, defaultX, defaultY, starPixels, bgPixels);
+                    if (result) {
+                        return [{
+                            size, x: defaultX, y: defaultY,
+                            width: size, height: size,
+                            corner: 'BR',
+                            detected: true,
+                            score: result.score,
+                        }];
+                    }
+                }
+            }
+
+            // ── Priority 2: Corner scan for cropped images ──
             const cornerMargins = [32, 24, 16, 8, 0, 48, 64, 96, 128];
             for (const margin of cornerMargins) {
                 const corners = [

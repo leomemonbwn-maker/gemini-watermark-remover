@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head><title>Watermark Size Analyzer</title></head>
+<body style="background: #111; color: white; font-family: monospace;">
+  <h1>Analyzer</h1>
+  <pre id="out"></pre>
+  <script type="module">
+    import { calculateAlphaMap } from '/src/engine/alphaMap.js';
+    import { removeWatermark } from '/src/engine/blendModes.js';
+
+    function log(msg) {
+      document.getElementById('out').textContent += msg + '\n';
+    }
+
+    async function loadImg(src) {
+      return new Promise(r => {
+        const i = new Image();
+        i.onload = () => r(i);
+        i.src = src;
+      });
+    }
+
+    async function run() {
+      const img = await loadImg('/assets/before.png');
+      const bg48 = await loadImg('/assets/bg_48.png');
+      const bg96 = await loadImg('/assets/bg_96.png');
+
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const originalData = ctx.getImageData(0, 0, img.width, img.height);
+
+      const sizesToTest = [48, 64, 96];
+      const marginsToTest = [24, 32, 48];
+
+      for (const size of sizesToTest) {
+        for (const margin of marginsToTest) {
+          const x = img.width - margin - size;
+          const y = img.height - margin - size;
+
+          // 1. Calculate Alpha Map
+          const c2 = document.createElement('canvas');
+          c2.width = size; c2.height = size;
+          const c2ctx = c2.getContext('2d');
+          c2ctx.imageSmoothingEnabled = true;
+          c2ctx.imageSmoothingQuality = 'high';
+          c2ctx.drawImage(size <= 48 ? bg48 : bg96, 0, 0, size, size);
+          const alphaMap = calculateAlphaMap(c2ctx.getImageData(0, 0, size, size));
+
+          // 2. Compute variance of original pixels under the star (alpha > 0.1)
+          let sumOriginal = 0, sqSumOriginal = 0, count = 0;
+          for (let row=0; row<size; row++) {
+            for (let col=0; col<size; col++) {
+              if (alphaMap[row*size+col] > 0.1) {
+                const idx = ((y+row)*img.width + (x+col))*4;
+                const lum = (originalData.data[idx] + originalData.data[idx+1] + originalData.data[idx+2])/3;
+                sumOriginal += lum;
+                sqSumOriginal += lum*lum;
+                count++;
+              }
+            }
+          }
+          const varOriginal = count > 0 ? (sqSumOriginal/count) - (sumOriginal/count)**2 : 0;
+
+          // 3. Apply removal
+          const testData = new ImageData(new Uint8ClampedArray(originalData.data), img.width, img.height);
+          removeWatermark(testData, alphaMap, {x, y, width: size, height: size});
+
+          // 4. Compute variance of pixels AFTER removal
+          let sumAfter = 0, sqSumAfter = 0;
+          for (let row=0; row<size; row++) {
+            for (let col=0; col<size; col++) {
+              if (alphaMap[row*size+col] > 0.1) {
+                const idx = ((y+row)*img.width + (x+col))*4;
+                const lum = (testData.data[idx] + testData.data[idx+1] + testData.data[idx+2])/3;
+                sumAfter += lum;
+                sqSumAfter += lum*lum;
+              }
+            }
+          }
+          const varAfter = count > 0 ? (sqSumAfter/count) - (sumAfter/count)**2 : 0;
+
+          log(`Size: ${size}, Margin: ${margin}, X/Y: ${x}/${y}`);
+          log(`  Original Variance: ${varOriginal.toFixed(2)}`);
+          log(`  After Variance: ${varAfter.toFixed(2)}`);
+          log(`  Variance Reduction: ${(varOriginal - varAfter).toFixed(2)}`);
+          log('');
+        }
+      }
+      log('DONE');
+    }
+    run();
+  </script>
+</body>
+</html>

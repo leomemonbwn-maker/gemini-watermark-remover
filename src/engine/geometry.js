@@ -6,10 +6,10 @@
 //   - 48px logo with 24px margin for smaller images
 
 export function getWatermarkInfo(width, height) {
-    const shortSide = Math.min(width, height);
-    const isLarge = shortSide > 512;
-    const size = isLarge ? 64 : 48;
-    const margin = isLarge ? 32 : 24;
+    const minSide = Math.min(width, height);
+    const isLarge = minSide > 1024;
+    const size = isLarge ? 96 : 48;
+    const margin = isLarge ? 64 : 32;
 
     return {
         size,
