@@ -69,6 +69,10 @@ async function shareImage(item) {
 
 const canShare = typeof navigator !== 'undefined' && !!navigator.share;
 
+function openDonate() {
+  window.dispatchEvent(new CustomEvent('open-donate'));
+}
+
 let enginePromise = null;
 function getEngine() {
   if (!enginePromise) {
@@ -721,15 +725,14 @@ function reset() {
                 <iconify-icon icon="ph:share-network-bold" width="14"></iconify-icon>
               </button>
 
-              <a
-                href="/donate/"
-                target="_blank"
-                class="btn-micro-pop neu-pill px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-neon-pink rounded-lg transition-all flex items-center gap-1 min-h-[34px] no-underline"
+              <button
+                @click="openDonate"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-neon-pink rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
                 title="Support this project"
               >
                 <iconify-icon icon="ph:heart-bold" width="13" class="text-neon-pink"></iconify-icon>
-                <span class="hidden sm:inline">Donate</span>
-              </a>
+                <span>Donate</span>
+              </button>
             </div>
 
             <!-- Quality Score -->

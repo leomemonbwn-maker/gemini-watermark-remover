@@ -20,7 +20,7 @@ function computeIoU(a, b) {
     return inter / (areaA + areaB - inter);
 }
 
-function nms(detections, iouThreshold = 0.3) {
+function nms(detections, iouThreshold = 0.3, maxDetections = 8) {
     // Sort descending by score
     const sorted = detections.slice().sort((a, b) => b.score - a.score);
     const kept = [];
@@ -29,6 +29,7 @@ function nms(detections, iouThreshold = 0.3) {
     for (let i = 0; i < sorted.length; i++) {
         if (suppressed.has(i)) continue;
         kept.push(sorted[i]);
+        if (kept.length >= maxDetections) break;
         for (let j = i + 1; j < sorted.length; j++) {
             if (suppressed.has(j)) continue;
             if (computeIoU(sorted[i], sorted[j]) > iouThreshold) {
@@ -109,9 +110,8 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
             if (starPixels.length < 8 || bgPixels.length < 8) continue;
 
             // Sliding window stride — balance speed vs coverage
-            // For detection we can afford a coarser stride since the sparkle is
-            // quite spatially distinct.
-            const stride = Math.max(4, Math.floor(size / 3));
+            // Use a coarser stride to reduce false positives and speed up scanning.
+            const stride = Math.max(8, Math.floor(size / 2));
 
             // ── Phase 1: Fast corner scan (original margins, all 4 corners) ──
             // We scan corners with pixel-level precision first because they are
@@ -170,8 +170,13 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
         }
 
         if (rawCandidates.length > 0) {
-            const detections = nms(rawCandidates, 0.3);
-            return detections.length > 0 ? detections : [fallback];
+            // Filter out low-confidence candidates before NMS
+            const MIN_COMPOSITE_SCORE = 80;
+            const confident = rawCandidates.filter(c => c.score >= MIN_COMPOSITE_SCORE);
+            if (confident.length > 0) {
+                const detections = nms(confident, 0.3, 8);
+                return detections.length > 0 ? detections : [fallback];
+            }
         }
     } catch (err) {
         console.warn('Watermark auto-detection fallback:', err);
@@ -206,10 +211,10 @@ function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels) {
     const avgBgBright = bgBrightSum / bgPixels.length;
     const contrastDelta = avgStarBright - avgBgBright;
 
-    // Watermark star must be brighter than surrounding background.
-    // Threshold raised to 3.0 (from 1.5) to reduce false positives in the
-    // full-image scan where we evaluate far more candidate positions.
-    if (contrastDelta > 3.0) {
+    // Watermark star must be significantly brighter than surrounding background.
+    // Threshold set to 12.0 to prevent false positives from skin tones, textures,
+    // and other natural image content that can resemble a sparkle pattern.
+    if (contrastDelta > 12.0) {
         const compositeScore = (contrastDelta * 5.0) + (avgStarBright * 0.2);
         return { score: compositeScore };
     }
