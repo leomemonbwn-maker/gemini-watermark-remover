@@ -115,7 +115,9 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
 
             // ── Phase 1: Fast corner scan (original margins, all 4 corners) ──
             // We scan corners with pixel-level precision first because they are
-            // by far the most common placement.
+            // by far the most common placement.  Use a LOWER threshold here
+            // since corner placement is strong prior evidence.
+            const CORNER_THRESHOLD = 4.0;
             const cornerMargins = [16, 24, 32, 48, 64, 96, 128];
             for (const margin of cornerMargins) {
                 const corners = [
@@ -129,7 +131,7 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
                     const { x, y, name } = c;
                     if (x < 0 || y < 0 || x + size > imgW || y + size > imgH) continue;
 
-                    const result = scoreRegion(pixels, imgW, x, y, starPixels, bgPixels);
+                    const result = scoreRegion(pixels, imgW, x, y, starPixels, bgPixels, CORNER_THRESHOLD);
                     if (result) {
                         rawCandidates.push({
                             size, x, y,
@@ -144,7 +146,9 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
 
             // ── Phase 2: Full-image sliding window ──
             // Covers arbitrary placements the corner scan misses.
-            // For very large images, downsample the stride to keep iteration bounded.
+            // Use a STRICT threshold here to prevent false positives from
+            // skin tones, textures, and other natural image patterns.
+            const SLIDING_THRESHOLD = 18.0;
             const maxPositions = 100000; // hard cap on total windows per scale
             let dynamicStride = stride;
             const hSteps = Math.ceil((imgW - size) / dynamicStride);
@@ -155,7 +159,7 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
 
             for (let wy = 0; wy + size <= imgH; wy += dynamicStride) {
                 for (let wx = 0; wx + size <= imgW; wx += dynamicStride) {
-                    const result = scoreRegion(pixels, imgW, wx, wy, starPixels, bgPixels);
+                    const result = scoreRegion(pixels, imgW, wx, wy, starPixels, bgPixels, SLIDING_THRESHOLD);
                     if (result) {
                         rawCandidates.push({
                             size, x: wx, y: wy,
@@ -171,7 +175,7 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
 
         if (rawCandidates.length > 0) {
             // Filter out low-confidence candidates before NMS
-            const MIN_COMPOSITE_SCORE = 80;
+            const MIN_COMPOSITE_SCORE = 30;
             const confident = rawCandidates.filter(c => c.score >= MIN_COMPOSITE_SCORE);
             if (confident.length > 0) {
                 const detections = nms(confident, 0.3, 8);
@@ -188,7 +192,7 @@ export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
 // ── Score a candidate region ─────────────────────────────────────────────────
 // Returns { score } if the region looks like a watermark, or null otherwise.
 
-function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels) {
+function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels, contrastThreshold) {
     let starBrightSum = 0;
     let starWeightSum = 0;
 
@@ -211,10 +215,11 @@ function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels) {
     const avgBgBright = bgBrightSum / bgPixels.length;
     const contrastDelta = avgStarBright - avgBgBright;
 
-    // Watermark star must be significantly brighter than surrounding background.
-    // Threshold set to 12.0 to prevent false positives from skin tones, textures,
-    // and other natural image content that can resemble a sparkle pattern.
-    if (contrastDelta > 12.0) {
+    // Watermark star pixels must be brighter than surrounding background.
+    // The threshold is passed in by the caller:
+    //   - Corner scan uses a lower value (~4) since corner placement is strong evidence
+    //   - Sliding window uses a higher value (~18) to prevent false positives
+    if (contrastDelta > contrastThreshold) {
         const compositeScore = (contrastDelta * 5.0) + (avgStarBright * 0.2);
         return { score: compositeScore };
     }
