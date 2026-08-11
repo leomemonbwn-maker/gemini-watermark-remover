@@ -94,7 +94,7 @@ async function copyToClipboard(item, idx) {
       new ClipboardItem({ 'image/png': item.blob })
     ]);
     copiedIdx.value = idx;
-    setTimeout(() => { copiedIdx.value = -1; }, 2500);
+    setTimeout(() => { copiedIdx.value = -1; }, 2000);
   } catch (e) {
     console.error('Failed to copy to clipboard', e);
   }
@@ -204,7 +204,7 @@ async function handleFiles(fileList) {
     const idx =
       items.value.push({
         file, name: file.name,
-        displayName: file.name.replace(/\.[^/.]+$/, '').slice(0, 30),
+        displayName: file.name.replace(/\.[^/.]+$/, '').slice(0, 24),
         status: 'processing',
         originalSrc: '', url: '', blob: null,
         width: 0, height: 0, config: null,
@@ -216,7 +216,7 @@ async function handleFiles(fileList) {
     const item = items.value[idx];
 
     try {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 150));
       const result = await engine.process(file);
 
       item.status = 'done';
@@ -227,7 +227,7 @@ async function handleFiles(fileList) {
       item.height = result.height;
       item.config = result.config;
 
-      // Auto-save to processing history
+      // Auto-save to history
       addEntry({
         name: item.name,
         blobUrl: item.url,
@@ -236,7 +236,6 @@ async function handleFiles(fileList) {
         blob: result.blob,
       });
 
-      // Calculate PSNR quality score
       calculatePSNR(result.originalSrc, result.blob).then(score => {
         if (score !== null) item.psnr = score;
       });
@@ -441,91 +440,72 @@ function reset() {
 </script>
 
 <template>
-  <div
-    class="max-w-5xl mx-auto neu-card rounded-3xl p-4 sm:p-6 shadow-neu-raised relative z-10 transition-all duration-300"
-  >
-    <!-- Advanced tuner with Touch & Drag Canvas -->
+  <div class="relative z-10">
+    <!-- Advanced Tuner Mode -->
     <div v-if="tunerActive" class="animate-fade-in">
-      <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
+      <div class="flex flex-col lg:flex-row gap-3.5 sm:gap-5">
         <div class="flex-1 min-w-0">
           <WatermarkTuner :settings="tunerSettings" :frame="tunerFrame" :bg-img="tunerBgImg" :base="tunerBase" />
-          <p class="text-xs text-slate-400 mt-3 leading-relaxed text-center">
+          <p class="text-[11px] text-slate-400 mt-2 text-center font-medium">
             <iconify-icon icon="ph:hand-swipe-left-bold" class="text-neon-cyan align-middle mr-1"></iconify-icon>
-            <strong>Touch & Drag directly on the Preview canvas</strong> to move the watermark target box anywhere!
+            Touch & Drag on preview canvas to reposition watermark box.
           </p>
         </div>
 
-        <!-- Desktop sidebar -->
-        <div class="hidden lg:block w-60 flex-shrink-0">
-          <div class="neu-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
-            <h2 class="font-bold text-white text-sm sm:text-base">Export</h2>
+        <!-- Desktop Action Sidebar -->
+        <div class="hidden lg:block w-56 flex-shrink-0">
+          <div class="neu-card rounded-xl p-3.5 space-y-2.5 sticky top-20">
+            <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Settings</h2>
             <label class="block">
-              <div class="text-xs font-bold text-slate-300 mb-1">Preset</div>
+              <div class="text-[11px] font-bold text-slate-300 mb-1">Preset</div>
               <select
                 v-model="presetId"
-                class="w-full text-xs font-semibold neu-pill rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none cursor-pointer"
+                class="w-full text-xs font-semibold neu-pill rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none cursor-pointer"
               >
                 <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
               </select>
-              <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1">{{ currentPreset.desc }}</p>
+              <p class="text-[10px] text-slate-500 mt-1">{{ currentPreset.desc }}</p>
             </label>
-            <button @click="resetTunerSettings" class="w-full text-xs font-semibold text-slate-400 hover:text-neon-cyan transition-colors py-1">
+            <button @click="resetTunerSettings" class="w-full text-[11px] font-semibold text-slate-400 hover:text-neon-cyan transition-colors py-0.5">
               Reset sliders
             </button>
-            <button @click="downloadTuner" class="btn-neon-cyan group w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all">
-              <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
-                <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download PNG
+            <button @click="downloadTuner" class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white transition-all text-xs">
+              <div class="flex items-center justify-center gap-1.5">
+                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download PNG
               </div>
             </button>
-            <button
-              @click="reset"
-              class="btn-cyber-secondary btn-micro-pop"
-            >
-              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+            <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
               <span>{{ t('processAnother') }}</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Mobile actions for tuner -->
-      <div class="lg:hidden mt-4">
-        <div class="neu-card rounded-2xl p-4 space-y-3">
-          <h2 class="font-bold text-white text-sm">Export</h2>
-          <label class="block">
-            <div class="text-xs font-bold text-slate-300 mb-1">Preset</div>
-            <select
-              v-model="presetId"
-              class="w-full text-xs font-semibold neu-pill rounded-xl px-2.5 py-2.5 text-slate-200 focus:outline-none cursor-pointer min-h-[40px]"
-            >
-              <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
-            </select>
-          </label>
-          <button @click="downloadTuner" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all">
-            <div class="flex items-center justify-center gap-2 text-sm">
-              <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download PNG
+      <!-- Mobile Actions -->
+      <div class="lg:hidden mt-3">
+        <div class="neu-card rounded-xl p-3 space-y-2">
+          <button @click="downloadTuner" class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs">
+            <div class="flex items-center justify-center gap-1.5">
+              <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download PNG
             </div>
           </button>
-          <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
-            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
             <span>{{ t('processAnother') }}</span>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Upload area (neumorphic inset) -->
+    <!-- Upload Dropzone (Sleek & Compact) -->
     <div
       v-else-if="!hasResults"
-      class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] sm:min-h-[16rem] py-6 sm:py-10 px-4 rounded-3xl neu-dropzone transition-all cursor-pointer select-none"
-      :class="
-        dragOver
-          ? '!border-neon-pink !shadow-neon-pink scale-[1.01]'
-          : ''
-      "
+      class="group relative flex flex-col items-center justify-center w-full min-h-[11rem] sm:min-h-[13rem] py-5 sm:py-7 px-4 rounded-2xl neu-dropzone transition-all cursor-pointer select-none"
+      :class="dragOver ? '!border-neon-pink scale-[1.01]' : ''"
       role="button"
       tabindex="0"
-      aria-label="Upload area — click to select images or drag and drop"
+      aria-label="Upload area"
       @click="openPicker"
       @keydown.enter="openPicker"
       @dragover.prevent="dragOver = true"
@@ -534,30 +514,27 @@ function reset() {
       @drop.prevent="onDrop"
     >
       <div class="flex flex-col items-center justify-center relative text-center">
-        <div class="relative flex items-center justify-center mb-3 sm:mb-4">
+        <!-- Center Icon -->
+        <div class="relative flex items-center justify-center mb-2.5">
           <div class="absolute inset-0 rounded-full bg-neon-pink/15 animate-ripple"></div>
-          <div class="absolute -inset-1 rounded-full bg-neon-cyan/10 animate-pulse-glow"></div>
           <div
-            class="relative w-14 h-14 sm:w-16 sm:h-16 neu-pill rounded-full shadow-neu-raised flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+            class="relative w-11 h-11 sm:w-13 sm:h-13 neu-pill rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
           >
             <iconify-icon
               icon="ph:upload-simple-bold"
-              class="text-2xl sm:text-3xl text-neon-cyan group-hover:text-neon-pink transition-colors"
-              aria-hidden="true"
+              class="text-xl sm:text-2xl text-neon-cyan group-hover:text-neon-pink transition-colors"
             ></iconify-icon>
           </div>
         </div>
         
-        <p
-          class="mb-1 text-sm sm:text-base font-extrabold text-slate-100 group-hover:text-neon-pink transition-colors tracking-tight px-2"
-        >
-          Click to upload, drag images, or <kbd class="px-1.5 py-0.5 text-[10px] sm:text-xs font-mono font-bold neu-pill rounded text-neon-cyan">Ctrl + V</kbd> to paste
+        <p class="mb-0.5 text-xs sm:text-sm font-bold text-slate-100 group-hover:text-neon-pink transition-colors tracking-tight px-2">
+          Click to upload or drag images here
         </p>
-        <p class="text-xs sm:text-sm text-slate-500">PNG, JPG, WebP · Multiple files supported</p>
+        <p class="text-[11px] text-slate-500">PNG, JPG, WebP · Batch processing supported</p>
         
-        <label class="mt-3 sm:mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-400 cursor-pointer" @click.stop>
-          <input type="checkbox" v-model="advanced" class="w-4 h-4 rounded" />
-          <span>Advanced: touch & drag target box</span>
+        <label class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
+          <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
+          <span>Advanced: reposition target box</span>
         </label>
       </div>
       
@@ -572,73 +549,69 @@ function reset() {
       />
     </div>
 
-    <!-- Results -->
-    <div v-else class="text-left mt-2 animate-fade-in">
-      <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
-        <div class="flex-1 space-y-4 sm:space-y-6 min-w-0">
+    <!-- Results (Crisp & Well-Structured) -->
+    <div v-else class="text-left animate-fade-in">
+      <div class="flex flex-col lg:flex-row gap-3.5 sm:gap-5">
+        <div class="flex-1 space-y-3 sm:space-y-4 min-w-0">
           <div
             v-for="(item, i) in items"
             :key="i"
-            class="p-3 sm:p-4 neu-card rounded-2xl space-y-3"
+            class="p-3 sm:p-3.5 neu-card rounded-xl space-y-2.5"
           >
-            <!-- Card Header: Title + Status + View Toggle -->
-            <div class="flex items-center justify-between border-b border-white/5 pb-2.5 flex-wrap gap-2">
+            <!-- Card Header -->
+            <div class="flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-1.5">
               <div class="flex items-center gap-2 overflow-hidden">
-                <h3 class="font-bold text-white text-xs sm:text-sm truncate">{{ item.displayName }}</h3>
-                
-                <span v-if="item.status === 'done' && item.config" class="text-[10px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-2 py-0.5 rounded-full flex-shrink-0">
-                  {{ item.config.isCustomPoint ? `📍 Pinned (${item.config.tappedX}, ${item.config.tappedY})` : '✨ Auto-Located' }}
+                <h3 class="font-bold text-white text-xs truncate max-w-[180px] sm:max-w-xs">{{ item.displayName }}</h3>
+                <span v-if="item.status === 'done' && item.config" class="text-[9px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
+                  {{ item.config.isCustomPoint ? '📍 Pinned' : '✨ Auto' }}
                 </span>
               </div>
 
-              <!-- View Mode Toggle (neumorphic) -->
-              <div v-if="item.status === 'done'" class="flex items-center gap-1 p-1 rounded-xl neu-inset text-xs font-bold">
+              <!-- View Mode Toggle -->
+              <div v-if="item.status === 'done'" class="flex items-center gap-1 p-0.5 rounded-lg neu-inset text-[10px] font-bold">
                 <button
                   @click="item.viewMode = 'sideBySide'"
-                  :class="['px-2.5 py-1.5 rounded-lg transition-all min-h-[32px]', item.viewMode === 'sideBySide' ? 'bg-neu-raised text-neon-pink shadow-neu-raised-sm' : 'text-slate-400 hover:text-white']"
+                  :class="['px-2 py-1 rounded transition-all', item.viewMode === 'sideBySide' ? 'bg-neu-raised text-neon-pink shadow-xs' : 'text-slate-400 hover:text-white']"
                 >
                   Side-by-Side
                 </button>
                 <button
                   @click="item.viewMode = 'slider'"
-                  :class="['px-2.5 py-1.5 rounded-lg transition-all min-h-[32px]', item.viewMode === 'slider' ? 'bg-neu-raised text-neon-pink shadow-neu-raised-sm' : 'text-slate-400 hover:text-white']"
+                  :class="['px-2 py-1 rounded transition-all', item.viewMode === 'slider' ? 'bg-neu-raised text-neon-pink shadow-xs' : 'text-slate-400 hover:text-white']"
                 >
-                  Compare Slider
+                  Slider
                 </button>
               </div>
             </div>
 
             <!-- VIEW MODE 1: Side-by-Side -->
-            <div v-if="item.viewMode === 'sideBySide'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div v-if="item.viewMode === 'sideBySide'" class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               <!-- Original -->
-              <div class="neu-card rounded-xl overflow-hidden group relative">
-                <div class="px-3 py-2 border-b border-white/5 flex justify-between items-center bg-white/3">
-                  <span class="font-bold text-slate-300 text-[11px] flex items-center gap-1">
-                    <iconify-icon icon="ph:image-bold" class="text-neon-cyan"></iconify-icon>
-                    Original Photo
-                  </span>
-                  <span v-if="item.status === 'done'" class="text-[10px] font-mono text-slate-400">{{ item.width }}×{{ item.height }}</span>
+              <div class="neu-card rounded-lg overflow-hidden relative">
+                <div class="px-2.5 py-1 border-b border-white/5 flex justify-between items-center bg-white/2">
+                  <span class="font-bold text-slate-300 text-[10px]">Original</span>
+                  <span v-if="item.status === 'done'" class="text-[9px] font-mono text-slate-400">{{ item.width }}×{{ item.height }}</span>
                 </div>
 
-                <div class="p-2 checker flex items-center justify-center h-48 sm:h-56 relative overflow-hidden">
-                  <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 flex flex-col items-center justify-center pointer-events-none">
-                    <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-transparent mb-2"></div>
-                    <span class="text-xs font-mono font-extrabold text-cyan-300 tracking-wider animate-pulse">🔍 Scanning...</span>
+                <div class="p-1.5 checker flex items-center justify-center h-40 sm:h-48 relative overflow-hidden">
+                  <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 flex flex-col items-center justify-center">
+                    <div class="animate-spin rounded-full h-6 w-6 border-2 border-cyan-400 border-t-transparent mb-1"></div>
+                    <span class="text-[10px] font-mono font-bold text-cyan-300">Scanning...</span>
                   </div>
 
                   <div class="relative inline-block max-h-full max-w-full">
                     <img
                       v-if="item.originalSrc"
                       :src="item.originalSrc"
-                      class="max-h-44 sm:max-h-52 w-auto object-contain rounded mx-auto select-none cursor-crosshair transition-all hover:ring-2 hover:ring-neon-pink/50"
-                      title="Click/Tap anywhere on image to pinpoint watermark position!"
+                      class="max-h-36 sm:max-h-44 w-auto object-contain rounded select-none cursor-crosshair"
+                      title="Click anywhere to re-target watermark"
                       @click="handleImageClick($event, item)"
                     />
 
-                    <!-- Watermark Preview Overlay -->
+                    <!-- Watermark Target Overlay -->
                     <div
                       v-if="item.status === 'done' && item.config"
-                      class="absolute pointer-events-none transition-all duration-200"
+                      class="absolute pointer-events-none transition-all duration-150"
                       :style="{
                         left: `${(item.config.x / item.width) * 100}%`,
                         top: `${(item.config.y / item.height) * 100}%`,
@@ -646,14 +619,9 @@ function reset() {
                         height: `${(item.config.size / item.height) * 100}%`,
                       }"
                     >
-                      <div class="absolute inset-0 border-2 border-neon-pink rounded animate-pulse shadow-neon-pink"></div>
-                      <div class="absolute inset-[-4px] border border-neon-pink/40 rounded"></div>
-                      <!-- Crosshair lines -->
-                      <div class="absolute top-1/2 left-0 right-0 h-px bg-neon-pink/60"></div>
-                      <div class="absolute left-1/2 top-0 bottom-0 w-px bg-neon-pink/60"></div>
-                      <!-- Label -->
-                      <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] font-mono font-bold text-white bg-neon-pink px-1.5 py-0.5 rounded shadow whitespace-nowrap">
-                        {{ item.config.isCustomPoint ? '📍 PINNED' : '🎯 DETECTED' }}
+                      <div class="absolute inset-0 border border-neon-pink rounded animate-pulse"></div>
+                      <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[7px] font-mono font-bold text-white bg-neon-pink px-1 rounded shadow">
+                        TARGET
                       </span>
                     </div>
                   </div>
@@ -661,22 +629,22 @@ function reset() {
               </div>
 
               <!-- Cleaned -->
-              <div class="neu-card rounded-xl overflow-hidden" style="border-color: rgba(0, 240, 255, 0.15);">
-                <div class="px-3 py-2 border-b border-neon-cyan/10 bg-neon-cyan/5 flex justify-between items-center">
-                  <span class="font-bold text-neon-cyan text-[11px]">Cleaned</span>
-                  <span class="text-[10px] font-mono text-neon-cyan font-bold">100% Lossless</span>
+              <div class="neu-card rounded-lg overflow-hidden border-neon-cyan/20">
+                <div class="px-2.5 py-1 border-b border-neon-cyan/10 bg-neon-cyan/5 flex justify-between items-center">
+                  <span class="font-bold text-neon-cyan text-[10px]">Cleaned</span>
+                  <span class="text-[9px] font-mono text-neon-cyan font-bold">100% Lossless</span>
                 </div>
-                <div class="p-2 checker flex justify-center h-48 sm:h-56">
+                <div class="p-1.5 checker flex justify-center h-40 sm:h-48">
                   <img v-if="item.status === 'done'" :src="item.url" class="max-h-full object-contain rounded mx-auto" />
-                  <p v-else class="text-xs font-semibold text-blue-500 self-center">Removing watermark...</p>
+                  <p v-else class="text-xs text-slate-400 self-center">Processing...</p>
                 </div>
               </div>
             </div>
 
-            <!-- VIEW MODE 2: Live Interactive Compare Slider -->
+            <!-- VIEW MODE 2: Compare Slider -->
             <div
               v-else-if="item.status === 'done'"
-              class="relative w-full h-56 sm:h-72 rounded-xl overflow-hidden checker border border-neon-cyan/15 cursor-ew-resize select-none touch-none"
+              class="relative w-full h-48 sm:h-60 rounded-lg overflow-hidden checker border border-neon-cyan/15 cursor-ew-resize select-none touch-none"
               @pointerdown="onSliderPointerDown($event, item)"
               @pointermove="onSliderPointerMove"
               @pointerup="onSliderPointerUp"
@@ -685,50 +653,34 @@ function reset() {
               <img :src="item.url" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" />
               <img :src="item.originalSrc" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" :style="{ clipPath: `inset(0 ${100 - item.sliderPos}% 0 0)` }" />
 
-              <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white">Before</span>
-              <span class="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-neon-cyan/90 text-white">After</span>
+              <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-900/80 text-white">Before</span>
+              <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.2 rounded bg-neon-cyan/90 text-white">After</span>
 
-              <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] pointer-events-none" :style="{ left: `${item.sliderPos}%` }">
-                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white text-neon-pink shadow-neu-raised flex items-center justify-center font-bold">
-                  <iconify-icon icon="ph:arrows-left-right-bold" width="14"></iconify-icon>
+              <div class="absolute top-0 bottom-0 w-0.5 bg-white pointer-events-none" :style="{ left: `${item.sliderPos}%` }">
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white text-neon-pink shadow-md flex items-center justify-center">
+                  <iconify-icon icon="ph:arrows-left-right-bold" width="12"></iconify-icon>
                 </div>
               </div>
             </div>
 
-            <!-- Touch & Drag Target Box Action Button -->
-            <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-neon-cyan/5 border border-neon-cyan/10 text-xs font-semibold text-neon-cyan flex-wrap">
-              <span class="flex items-center gap-1.5">
-                <iconify-icon icon="ph:hand-swipe-left-bold" class="text-base text-neon-cyan"></iconify-icon>
-                <span>Watermark custom position? Touch & Drag target box!</span>
-              </span>
-              <button
-                @click="openTunerForItem(item)"
-                class="px-3 py-2 rounded-xl bg-neon-cyan hover:bg-neon-cyan/80 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm min-h-[36px]"
-              >
-                <iconify-icon icon="ph:crosshair-bold"></iconify-icon>
-                Touch & Drag Target Box
-              </button>
-            </div>
-
-            <!-- Controls bar: Format selector + Download + Copy -->
-            <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5">
+            <!-- Controls Row: Actions, Format, Download, Share -->
+            <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/5 text-xs">
               <button
                 @click="item.showAnalyst = !item.showAnalyst"
-                class="btn-micro-pop neu-pill px-3 py-2.5 text-xs font-bold text-slate-200 hover:text-neon-purple rounded-xl transition-all flex items-center gap-1.5 min-h-[40px]"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 font-bold text-slate-200 hover:text-neon-purple rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
               >
-                <iconify-icon icon="ph:sparkle-bold" width="14" class="text-neon-purple"></iconify-icon>
+                <iconify-icon icon="ph:sparkle-bold" width="13" class="text-neon-purple"></iconify-icon>
                 <span>Ask AI</span>
               </button>
 
-              <div class="flex items-center gap-1 text-xs font-semibold text-slate-500 ml-auto sm:ml-2">
-                <span>Format:</span>
+              <div class="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
                 <select
                   v-model="item.format"
-                  class="text-xs font-bold neu-pill rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none cursor-pointer min-h-[36px]"
+                  class="text-[11px] font-bold neu-pill rounded-lg px-2 py-1 text-slate-200 focus:outline-none cursor-pointer min-h-[34px]"
                 >
-                  <option value="png">PNG (Lossless)</option>
-                  <option value="webp">WebP (Compact)</option>
-                  <option value="jpeg">JPG (High)</option>
+                  <option value="png">PNG</option>
+                  <option value="webp">WebP</option>
+                  <option value="jpeg">JPG</option>
                 </select>
               </div>
 
@@ -736,36 +688,35 @@ function reset() {
 
               <button
                 @click="downloadFormatted(item)"
-                class="btn-micro-pop flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-neon-cyan hover:bg-neon-cyan/80 rounded-xl transition-all shadow-sm min-h-[40px]"
+                class="btn-micro-pop flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-neon-cyan hover:bg-neon-cyan/90 rounded-lg transition-all min-h-[34px]"
               >
-                <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon>
-                <span>Download {{ item.format.toUpperCase() }}</span>
+                <iconify-icon icon="ph:download-simple-bold" width="13"></iconify-icon>
+                <span>Download</span>
               </button>
 
               <button
                 @click="copyToClipboard(item, i)"
-                class="btn-micro-pop neu-pill px-3 py-2.5 text-xs font-bold text-slate-200 hover:text-neon-cyan rounded-xl transition-all flex items-center gap-1 min-h-[40px]"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-neon-cyan rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
+                title="Copy to clipboard"
               >
-                <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-neon-green' : ''"></iconify-icon>
+                <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="13" :class="copiedIdx === i ? 'text-neon-green' : ''"></iconify-icon>
                 <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
               </button>
 
-              <!-- Share button (Web Share API) -->
               <button
                 v-if="canShare"
                 @click="shareImage(item)"
-                class="btn-micro-pop neu-pill px-3 py-2.5 text-xs font-bold text-slate-200 hover:text-neon-green rounded-xl transition-all flex items-center gap-1 min-h-[40px]"
+                class="btn-micro-pop neu-pill p-1.5 text-slate-200 hover:text-neon-green rounded-lg transition-all flex items-center justify-center min-w-[34px] min-h-[34px]"
+                title="Share"
               >
-                <iconify-icon icon="ph:share-network-bold" width="14" class="text-neon-green"></iconify-icon>
-                <span>Share</span>
+                <iconify-icon icon="ph:share-network-bold" width="14"></iconify-icon>
               </button>
             </div>
 
-            <!-- PSNR Quality Score Badge -->
-            <div v-if="item.psnr" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-neon-green/5 border border-neon-green/10 text-xs font-bold mt-1">
-              <iconify-icon icon="ph:chart-line-up-bold" width="14" class="text-neon-green"></iconify-icon>
-              <span class="text-neon-green">Quality Score: {{ item.psnr.toFixed(1) }} dB PSNR</span>
-              <span class="text-slate-500 font-normal">{{ item.psnr > 45 ? '· Excellent' : item.psnr > 35 ? '· Great' : '· Good' }}</span>
+            <!-- Quality Score -->
+            <div v-if="item.psnr" class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-neon-green/5 text-[10px] font-bold text-neon-green">
+              <iconify-icon icon="ph:chart-line-up-bold" width="12"></iconify-icon>
+              <span>Quality Score: {{ item.psnr.toFixed(1) }} dB PSNR</span>
             </div>
             
             <GeminiAnalyst 
@@ -777,63 +728,59 @@ function reset() {
           </div>
         </div>
 
-        <!-- Actions sidebar (desktop only) -->
-        <div class="hidden lg:block w-60 flex-shrink-0">
-          <div class="neu-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-3">
-            <h2 class="font-bold text-white text-sm sm:text-base">Actions</h2>
+        <!-- Desktop Action Sidebar -->
+        <div class="hidden lg:block w-56 flex-shrink-0">
+          <div class="neu-card rounded-xl p-3.5 sticky top-20 space-y-2.5">
+            <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Actions</h2>
             <button
               v-if="doneItems.length === 1"
               @click="downloadFormatted(doneItems[0])"
-              class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all duration-300"
+              class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
             >
-              <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
-                <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download
+              <div class="flex items-center justify-center gap-1.5">
+                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download
               </div>
             </button>
             <button
               v-if="doneItems.length > 1"
               @click="downloadAll"
-              class="btn-neon group w-full py-3.5 rounded-xl font-bold text-white transition-all duration-300"
+              class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
             >
-              <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
-                <iconify-icon icon="ph:file-zip-bold" width="18"></iconify-icon> Download All ZIP
+              <div class="flex items-center justify-center gap-1.5">
+                <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Download All ZIP
               </div>
             </button>
-            <button
-              @click="reset"
-              class="btn-cyber-secondary btn-micro-pop"
-            >
-              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+            <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
               <span>{{ t('processAnother') }}</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Mobile action bar -->
-      <div class="lg:hidden mt-4">
-        <div class="neu-card rounded-2xl p-4 space-y-3">
-          <h2 class="font-bold text-white text-sm">Actions</h2>
+      <!-- Mobile Action Bar -->
+      <div class="lg:hidden mt-3">
+        <div class="neu-card rounded-xl p-3 space-y-2">
           <button
             v-if="doneItems.length === 1"
             @click="downloadFormatted(doneItems[0])"
-            class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all"
+            class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
           >
-            <div class="flex items-center justify-center gap-2 text-sm">
-              <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download
+            <div class="flex items-center justify-center gap-1.5">
+              <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download
             </div>
           </button>
           <button
             v-if="doneItems.length > 1"
             @click="downloadAll"
-            class="btn-neon group w-full py-3.5 rounded-xl font-bold text-white transition-all"
+            class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
           >
-            <div class="flex items-center justify-center gap-2 text-sm">
-              <iconify-icon icon="ph:file-zip-bold" width="18"></iconify-icon> Download All ZIP
+            <div class="flex items-center justify-center gap-1.5">
+              <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Download All ZIP
             </div>
           </button>
-          <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
-            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
             <span>{{ t('processAnother') }}</span>
           </button>
         </div>

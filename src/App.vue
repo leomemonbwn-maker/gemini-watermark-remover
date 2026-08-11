@@ -68,8 +68,8 @@ const pipelineSteps = [
 // Animated stats
 const stats = ref([
   { value: '0ms', label: 'Upload Latency', color: 'text-neon-cyan' },
-  { value: '100%', label: 'Lossless', color: 'text-neon-pink' },
-  { value: '0', label: 'Bytes Logged', color: 'text-neon-purple' },
+  { value: '100%', label: 'Lossless Quality', color: 'text-neon-pink' },
+  { value: '0', label: 'Bytes Uploaded', color: 'text-neon-purple' },
   { value: '∞', label: 'Files / Day', color: 'text-neon-green' },
 ]);
 
@@ -102,7 +102,7 @@ onMounted(() => {
           }
         }
       },
-      { threshold: 0.05, rootMargin: '50px' }
+      { threshold: 0.05, rootMargin: '40px' }
     );
     document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
       observer.observe(el);
@@ -117,14 +117,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- Particle Canvas Background -->
+  <!-- Subtle Ambient Particle Background -->
   <ParticleCanvas />
 
-  <!-- Soft Ambient Blobs (neumorphic) -->
+  <!-- Ambient Light Accents -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-    <div class="absolute -top-40 -left-40 w-[28rem] h-[28rem] bg-neon-pink/5 rounded-full blur-3xl animate-blob"></div>
-    <div class="absolute top-1/3 -right-40 w-[26rem] h-[26rem] bg-neon-cyan/5 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-    <div class="absolute -bottom-40 left-1/3 w-[24rem] h-[24rem] bg-neon-purple/4 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-neon-pink/5 rounded-full blur-3xl animate-blob"></div>
+    <div class="absolute top-1/4 -right-32 w-80 h-80 bg-neon-cyan/5 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
   </div>
 
   <div class="relative z-10 flex flex-col min-h-screen">
@@ -134,113 +133,85 @@ onMounted(() => {
     <main class="flex-grow w-full">
 
       <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 1: PREMIUM NEUMORPHIC HERO -->
+      <!-- SECTION 1: COMPACT, TIGHT & ELEGANT HERO -->
       <!-- ═══════════════════════════════════════════════ -->
-      <section class="relative flex items-center justify-center overflow-hidden" style="min-height: calc(100vh - 7rem);">
-        <div class="relative max-w-6xl mx-auto px-4 sm:px-6 text-center py-8 sm:py-12">
-          <!-- Floating badge -->
-          <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full neu-pill text-xs font-bold mb-5 sm:mb-6 reveal-on-scroll">
-            <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-pink opacity-60"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-neon-pink"></span>
+      <section class="relative flex items-center justify-center pt-6 sm:pt-10 pb-4 sm:pb-6">
+        <div class="relative max-w-4xl mx-auto px-4 text-center">
+          
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full neu-pill text-[11px] font-bold mb-3 sm:mb-4 reveal-on-scroll">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-pink opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-neon-pink"></span>
             </span>
-            <span class="text-slate-200 tracking-tight">{{ t('heroBadge') }}</span>
-            <span class="w-px h-3 bg-white/10"></span>
+            <span class="text-slate-200">{{ t('heroBadge') }}</span>
+            <span class="w-px h-2.5 bg-white/10"></span>
             <span class="text-neon-cyan">{{ t('heroBadgeSub') }}</span>
           </div>
 
-          <!-- Neumorphic Logo -->
-          <div class="relative mx-auto mb-5 sm:mb-6 w-20 h-20 sm:w-28 sm:h-28 reveal-on-scroll">
-            <!-- Soft glow -->
-            <div class="absolute inset-[-16px] sm:inset-[-24px] rounded-full bg-neon-pink/6 blur-2xl animate-pulse" style="animation-duration: 4s;"></div>
-            
-            <!-- Neumorphic logo container -->
-            <div class="relative w-full h-full rounded-2xl sm:rounded-3xl bg-neu-surface border border-white/5 flex items-center justify-center shadow-neu-raised hero-float-3d">
-              <img src="/assets/logo.svg" alt="GemClean AI" class="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-lg select-none" />
-            </div>
-          </div>
-
-          <!-- Giant headline -->
-          <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight leading-[1.05] reveal-on-scroll">
-            <span class="text-white">{{ t('heroTitle1') }}</span><br/>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan">{{ t('heroTitle2') }}</span>
+          <!-- Headline -->
+          <h1 class="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight reveal-on-scroll">
+            <span class="text-white">{{ t('heroTitle1') }}</span>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan ml-2">{{ t('heroTitle2') }}</span>
           </h1>
 
-          <p class="mt-4 sm:mt-5 text-slate-400 text-sm sm:text-lg font-medium max-w-2xl mx-auto leading-relaxed reveal-on-scroll">
+          <!-- Subtitle -->
+          <p class="mt-2.5 sm:mt-3 text-slate-400 text-xs sm:text-base font-normal max-w-xl mx-auto leading-relaxed reveal-on-scroll">
             {{ t('heroSubtitle') }}
           </p>
 
-          <!-- Feature pills row -->
-          <div class="mt-5 sm:mt-6 flex flex-wrap items-center justify-center gap-3 sm:gap-4 reveal-on-scroll">
-            <div class="flex items-center gap-2 px-4 py-2 rounded-xl neu-pill text-xs sm:text-sm font-bold text-neon-cyan">
-              <iconify-icon icon="ph:shield-check-fill" width="18"></iconify-icon>
+          <!-- Feature Pills -->
+          <div class="mt-3.5 sm:mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3 reveal-on-scroll">
+            <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg neu-pill text-[11px] sm:text-xs font-semibold text-neon-cyan">
+              <iconify-icon icon="ph:shield-check-fill" width="15"></iconify-icon>
               <span>{{ t('noServerUpload') }}</span>
             </div>
-            <div class="flex items-center gap-2 px-4 py-2 rounded-xl neu-pill text-xs sm:text-sm font-bold text-neon-pink">
-              <iconify-icon icon="ph:image-fill" width="18"></iconify-icon>
+            <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg neu-pill text-[11px] sm:text-xs font-semibold text-neon-pink">
+              <iconify-icon icon="ph:image-fill" width="15"></iconify-icon>
               <span>{{ t('imageFormats') }}</span>
             </div>
-            <div class="flex items-center gap-2 px-4 py-2 rounded-xl neu-pill text-xs sm:text-sm font-bold text-neon-purple">
-              <iconify-icon icon="ph:video-fill" width="18"></iconify-icon>
+            <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg neu-pill text-[11px] sm:text-xs font-semibold text-neon-purple">
+              <iconify-icon icon="ph:video-fill" width="15"></iconify-icon>
               <span>{{ t('videoFormats') }}</span>
             </div>
-          </div>
-
-          <!-- CTA Button -->
-          <div class="mt-7 sm:mt-8 reveal-on-scroll">
-            <button
-              @click="scrollToTool"
-              class="btn-neon text-sm sm:text-base px-8 py-4 rounded-2xl inline-flex items-center gap-2"
-            >
-              <iconify-icon icon="ph:lightning-fill" width="20"></iconify-icon>
-              Start Removing Watermarks
-            </button>
-          </div>
-
-          <!-- Scroll indicator -->
-          <div class="mt-7 sm:mt-8 animate-bounce-down reveal-on-scroll">
-            <button @click="scrollToTool" class="text-slate-500 hover:text-neon-cyan transition-colors flex flex-col items-center gap-1">
-              <span class="text-xs font-mono font-medium">{{ t('scrollDown') }}</span>
-              <iconify-icon icon="ph:caret-double-down" width="20"></iconify-icon>
-            </button>
           </div>
         </div>
       </section>
 
       <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 2: TOOL WORKSPACE -->
+      <!-- SECTION 2: WORKSPACE (IMMEDIATE & PROMINENT) -->
       <!-- ═══════════════════════════════════════════════ -->
-      <section id="tool-section" class="relative pb-12 sm:pb-16">
+      <section id="tool-section" class="relative pt-2 pb-8 sm:pb-12">
         <div class="max-w-4xl mx-auto px-3 sm:px-6">
-          <div class="neu-card cyber-card-neon rounded-3xl p-4 sm:p-6 shadow-neu-raised-lg reveal-on-scroll">
+          <div class="neu-card cyber-card-neon rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xl reveal-on-scroll">
             
-            <!-- Tab bar inside card -->
-            <div class="flex justify-center mb-4 sm:mb-5">
-              <div class="p-1.5 rounded-2xl neu-inset inline-flex gap-1.5">
+            <!-- Sleek Tab Switcher -->
+            <div class="flex justify-center mb-3 sm:mb-4">
+              <div class="p-1 rounded-xl neu-inset inline-flex gap-1">
                 <button
                   @click="tab = 'image'"
                   :class="[
-                    'flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 min-h-[40px]',
+                    'flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all duration-200 min-h-[36px]',
                     tab === 'image'
-                      ? 'bg-neu-raised text-neon-pink shadow-neu-raised-sm'
+                      ? 'bg-neu-raised text-neon-pink shadow-sm'
                       : 'text-slate-400 hover:text-white',
                   ]"
                 >
-                  <iconify-icon icon="ph:image-bold" width="16"></iconify-icon>
+                  <iconify-icon icon="ph:image-bold" width="15"></iconify-icon>
                   {{ t('tabImages') }}
                 </button>
                 <button
                   @click="tab = 'video'"
                   :class="[
-                    'flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 min-h-[40px]',
+                    'flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all duration-200 min-h-[36px]',
                     tab === 'video'
-                      ? 'bg-neu-raised text-neon-cyan shadow-neu-raised-sm'
+                      ? 'bg-neu-raised text-neon-cyan shadow-sm'
                       : 'text-slate-400 hover:text-white',
                   ]"
                 >
-                  <iconify-icon icon="ph:video-camera-bold" width="16"></iconify-icon>
+                  <iconify-icon icon="ph:video-camera-bold" width="15"></iconify-icon>
                   {{ t('tabVideos') }}
-                  <span class="text-[8px] font-extrabold bg-neon-pink text-white px-1.5 py-0.5 rounded-full">{{ t('tabNew') }}</span>
+                  <span class="text-[8px] font-extrabold bg-neon-pink text-white px-1.5 py-0.2 rounded-full">{{ t('tabNew') }}</span>
                 </button>
               </div>
             </div>
@@ -251,8 +222,8 @@ onMounted(() => {
           </div>
 
           <!-- Inline tip -->
-          <p class="text-center text-xs text-slate-500 mt-3 font-medium font-mono">
-            <iconify-icon icon="ph:info" width="13" class="align-middle mr-1 text-neon-cyan"></iconify-icon>
+          <p class="text-center text-[11px] text-slate-500 mt-2.5 font-medium font-mono">
+            <iconify-icon icon="ph:info" width="12" class="align-middle mr-1 text-neon-cyan"></iconify-icon>
             {{ t('tip') }}
           </p>
         </div>
@@ -261,18 +232,18 @@ onMounted(() => {
       <!-- ═══════════════════════════════════════════════ -->
       <!-- SECTION 3: BEFORE / AFTER SHOWCASE -->
       <!-- ═══════════════════════════════════════════════ -->
-      <section class="py-14 sm:py-20 reveal-on-scroll">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6">
-          <div class="text-center mb-8 sm:mb-10">
-            <span class="inline-block text-xs font-bold uppercase tracking-widest text-neon-pink mb-2 font-mono">{{ t('realOutput') }}</span>
-            <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
+      <section class="py-8 sm:py-12 reveal-on-scroll">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+          <div class="text-center mb-5 sm:mb-7">
+            <span class="inline-block text-[10px] font-bold uppercase tracking-widest text-neon-pink mb-1 font-mono">{{ t('realOutput') }}</span>
+            <h2 class="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
               {{ t('seeTheDifference') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-cyan">{{ t('differenceHighlight') }}</span>
             </h2>
-            <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">{{ t('sliderHint') }}</p>
+            <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">{{ t('sliderHint') }}</p>
           </div>
 
-          <div class="max-w-3xl mx-auto">
-            <div class="neu-card rounded-3xl p-2 sm:p-3 shadow-neu-raised-lg">
+          <div class="max-w-2xl mx-auto">
+            <div class="neu-card rounded-2xl p-2 sm:p-2.5 shadow-xl">
               <BeforeAfter />
             </div>
           </div>
@@ -282,60 +253,54 @@ onMounted(() => {
       <!-- ═══════════════════════════════════════════════ -->
       <!-- SECTION 4: ALGORITHM PIPELINE -->
       <!-- ═══════════════════════════════════════════════ -->
-      <section class="py-14 sm:py-20 reveal-on-scroll">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6">
-          <div class="text-center mb-10 sm:mb-14">
-            <span class="inline-block text-xs font-bold uppercase tracking-widest text-neon-cyan mb-2 font-mono">Under the Hood</span>
-            <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
+      <section class="py-8 sm:py-12 reveal-on-scroll">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+          <div class="text-center mb-6 sm:mb-8">
+            <span class="inline-block text-[10px] font-bold uppercase tracking-widest text-neon-cyan mb-1 font-mono">Architecture</span>
+            <h2 class="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
               {{ t('pipelineTitle') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-purple">{{ t('pipelineTitleHighlight') }}</span>
             </h2>
-            <p class="text-sm text-slate-400 mt-2 max-w-lg mx-auto">{{ t('pipelineSubtitle') }}</p>
+            <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">{{ t('pipelineSubtitle') }}</p>
           </div>
 
           <!-- Pipeline flowchart -->
-          <div class="relative max-w-3xl mx-auto">
-            <!-- Vertical connector line -->
-            <div class="absolute left-6 sm:left-8 top-6 bottom-6 w-px bg-gradient-to-b from-neon-pink/20 via-neon-cyan/20 to-neon-purple/20 hidden sm:block"></div>
-
-            <div class="space-y-4 sm:space-y-5">
+          <div class="relative max-w-2xl mx-auto">
+            <div class="space-y-3 sm:space-y-3.5">
               <div
                 v-for="(step, idx) in pipelineSteps"
                 :key="idx"
-                class="relative flex items-start gap-4 sm:gap-5 group reveal-on-scroll"
-                :style="{ transitionDelay: (idx * 80) + 'ms' }"
+                class="relative flex items-center gap-3 sm:gap-4 group reveal-on-scroll neu-card rounded-xl p-3 sm:p-3.5"
+                :style="{ transitionDelay: (idx * 50) + 'ms' }"
               >
-                <!-- Step number circle (neumorphic) -->
+                <!-- Step number circle -->
                 <div :class="[
-                  'relative z-10 flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shadow-neu-raised transition-transform group-hover:scale-105',
-                  step.color === 'pink' ? 'bg-gradient-to-br from-neon-pink/30 to-neon-pink/10' : '',
-                  step.color === 'cyan' ? 'bg-gradient-to-br from-neon-cyan/30 to-neon-blue/10' : '',
-                  step.color === 'purple' ? 'bg-gradient-to-br from-neon-purple/30 to-neon-purple/10' : '',
-                  step.color === 'green' ? 'bg-gradient-to-br from-neon-green/30 to-neon-green/10' : '',
+                  'flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-sm font-bold text-xs',
+                  step.color === 'pink' ? 'bg-neon-pink/15 text-neon-pink border border-neon-pink/20' : '',
+                  step.color === 'cyan' ? 'bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/20' : '',
+                  step.color === 'purple' ? 'bg-neon-purple/15 text-neon-purple border border-neon-purple/20' : '',
+                  step.color === 'green' ? 'bg-neon-green/15 text-neon-green border border-neon-green/20' : '',
                 ]">
-                  <iconify-icon :icon="step.icon" width="24" class="text-white sm:w-7 sm:h-7"></iconify-icon>
+                  <iconify-icon :icon="step.icon" width="18"></iconify-icon>
                 </div>
 
-                <!-- Step content card (neumorphic) -->
-                <div class="flex-1 neu-card rounded-2xl p-4 sm:p-5 group-hover:shadow-neu-raised-lg transition-shadow">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 font-mono">{{ t('step') }} {{ idx + 1 }}</span>
+                <!-- Step content -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 font-mono">{{ t('step') }} {{ idx + 1 }}</span>
+                    <h3 class="font-bold text-white text-xs sm:text-sm truncate">{{ step.label }}</h3>
                   </div>
-                  <h3 class="font-bold text-white text-sm sm:text-base">{{ step.label }}</h3>
-                  <p class="text-xs sm:text-sm text-slate-400 mt-1 font-medium leading-relaxed font-mono">{{ step.desc }}</p>
+                  <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5 leading-snug font-mono">{{ step.desc }}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Formula callout (neumorphic inset) -->
-          <div class="max-w-3xl mx-auto mt-8 sm:mt-10 reveal-on-scroll">
-            <div class="neu-card rounded-2xl p-5 sm:p-6 text-center">
-              <p class="text-xs font-bold uppercase tracking-widest text-neon-purple mb-3 font-mono">{{ t('coreFormula') }}</p>
-              <p class="text-lg sm:text-2xl font-mono font-bold text-white tracking-tight">
+          <!-- Formula callout -->
+          <div class="max-w-2xl mx-auto mt-5 sm:mt-6 reveal-on-scroll">
+            <div class="neu-card rounded-xl p-4 text-center">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-neon-purple mb-1.5 font-mono">{{ t('coreFormula') }}</p>
+              <p class="text-sm sm:text-lg font-mono font-bold text-white tracking-tight">
                 P<sub class="text-neon-green">original</sub> = ( P<sub class="text-slate-400">watermarked</sub> − α · L ) ÷ ( 1 − α )
-              </p>
-              <p class="text-xs text-slate-400 mt-3 max-w-md mx-auto font-mono">
-                {{ t('formulaWhere') }} <code class="text-neon-green font-bold">α</code> {{ t('formulaAlpha') }} <code class="text-neon-cyan font-bold">L</code> {{ t('formulaL') }}
               </p>
             </div>
           </div>
@@ -343,20 +308,20 @@ onMounted(() => {
       </section>
 
       <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 5: STATS (Neumorphic cards) -->
+      <!-- SECTION 5: STATS -->
       <!-- ═══════════════════════════════════════════════ -->
-      <section class="py-14 sm:py-20 reveal-on-scroll">
+      <section class="py-8 sm:py-12 reveal-on-scroll">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5">
             <div
               v-for="(stat, idx) in stats"
               :key="idx"
-              class="neu-card rounded-2xl p-5 sm:p-6 text-center group hover:shadow-neu-raised-lg transition-shadow duration-500"
+              class="neu-card rounded-xl p-3.5 sm:p-4 text-center"
             >
-              <div :class="['text-2xl sm:text-3xl font-black counter-animate', stat.color]" :style="{ animationDelay: (idx * 150) + 'ms' }">
+              <div :class="['text-xl sm:text-2xl font-black counter-animate', stat.color]">
                 {{ stat.value }}
               </div>
-              <div class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mt-1 font-mono">{{ stat.label }}</div>
+              <div class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-0.5 font-mono">{{ stat.label }}</div>
             </div>
           </div>
         </div>
@@ -368,37 +333,37 @@ onMounted(() => {
       <ProcessingHistory />
 
       <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 7: FAQ (Neumorphic accordion) -->
+      <!-- SECTION 7: FAQ -->
       <!-- ═══════════════════════════════════════════════ -->
-      <section class="py-14 sm:py-20 reveal-on-scroll">
+      <section class="py-8 sm:py-12 reveal-on-scroll">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
-          <div class="text-center mb-8 sm:mb-10">
-            <span class="inline-block text-xs font-bold uppercase tracking-widest text-neon-purple mb-2 font-mono">{{ t('faqSupport') }}</span>
-            <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
+          <div class="text-center mb-5 sm:mb-7">
+            <span class="inline-block text-[10px] font-bold uppercase tracking-widest text-neon-purple mb-1 font-mono">{{ t('faqSupport') }}</span>
+            <h2 class="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
               {{ t('faqTitle') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple">{{ t('faqTitleHighlight') }}</span>
             </h2>
           </div>
 
-          <div class="space-y-3">
+          <div class="space-y-2.5">
             <div
               v-for="(faq, idx) in faqs"
               :key="idx"
-              class="neu-card rounded-2xl overflow-hidden transition-all duration-300"
+              class="neu-card rounded-xl overflow-hidden"
             >
               <button
                 @click="toggleFaq(idx)"
-                class="w-full p-4 sm:p-5 flex items-center justify-between font-bold text-sm text-white hover:text-neon-pink transition-colors text-left min-h-[52px]"
+                class="w-full p-3.5 sm:p-4 flex items-center justify-between font-bold text-xs sm:text-sm text-white hover:text-neon-pink transition-colors text-left min-h-[44px]"
               >
                 <span class="pr-3">{{ faq.q }}</span>
                 <iconify-icon
                   icon="ph:caret-down-bold"
-                  width="16"
-                  :class="['transition-transform duration-300 text-neon-pink flex-shrink-0', activeFaq === idx ? 'rotate-180' : '']"
+                  width="14"
+                  :class="['transition-transform duration-200 text-neon-pink flex-shrink-0', activeFaq === idx ? 'rotate-180' : '']"
                 ></iconify-icon>
               </button>
               <div
                 v-show="activeFaq === idx"
-                class="px-4 pb-4 sm:px-5 sm:pb-5 text-sm text-slate-300 leading-relaxed border-t border-white/5 pt-3 animate-fade-in font-medium"
+                class="px-3.5 pb-3.5 sm:px-4 sm:pb-4 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-white/5 pt-2.5 animate-fade-in font-normal"
               >
                 {{ faq.a }}
               </div>
@@ -415,53 +380,53 @@ onMounted(() => {
     <!-- Keyboard Shortcuts Floating Button -->
     <button
       @click="showShortcuts = true"
-      class="fixed bottom-4 left-4 z-40 neu-pill px-3 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-neon-cyan shadow-neu-raised-sm flex items-center gap-1.5 transition-all min-h-[40px]"
+      class="fixed bottom-3.5 left-3.5 z-40 neu-pill px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-neon-cyan flex items-center gap-1.5 transition-all min-h-[34px]"
       title="Keyboard Shortcuts (? or Ctrl+K)"
     >
-      <iconify-icon icon="ph:keyboard-bold" width="16"></iconify-icon>
+      <iconify-icon icon="ph:keyboard-bold" width="14"></iconify-icon>
       <span class="hidden sm:inline">{{ t('shortcuts') }}</span>
-      <kbd class="px-1.5 py-0.5 text-[9px] font-mono bg-white/5 rounded">?</kbd>
+      <kbd class="px-1 py-0.2 text-[9px] font-mono bg-white/5 rounded">?</kbd>
     </button>
 
-    <!-- Keyboard Shortcuts Modal (Neumorphic) -->
+    <!-- Keyboard Shortcuts Modal -->
     <div
       v-if="showShortcuts"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-fade-in"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 animate-fade-in backdrop-blur-xs"
       @click.self="showShortcuts = false"
     >
-      <div class="neu-card rounded-3xl p-6 max-w-md w-full shadow-neu-raised-lg">
-        <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
-          <h3 class="font-bold text-white text-base flex items-center gap-2">
+      <div class="neu-card rounded-2xl p-5 max-w-sm w-full shadow-2xl">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3">
+          <h3 class="font-bold text-white text-sm flex items-center gap-2">
             <iconify-icon icon="ph:keyboard-bold" class="text-neon-cyan"></iconify-icon>
             {{ t('keyboardShortcuts') }}
           </h3>
-          <button @click="showShortcuts = false" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 min-w-[36px] min-h-[36px] flex items-center justify-center">
-            <iconify-icon icon="ph:x-bold" width="18"></iconify-icon>
+          <button @click="showShortcuts = false" class="text-slate-400 hover:text-white p-1 rounded-lg">
+            <iconify-icon icon="ph:x-bold" width="16"></iconify-icon>
           </button>
         </div>
 
-        <div class="space-y-2.5 text-xs font-medium">
-          <div class="flex justify-between items-center p-3 rounded-xl neu-inset">
+        <div class="space-y-2 text-xs font-medium">
+          <div class="flex justify-between items-center p-2.5 rounded-lg neu-inset">
             <span>{{ t('pasteImage') }}</span>
-            <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">Ctrl + V</kbd>
+            <kbd class="px-2 py-0.5 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded">Ctrl + V</kbd>
           </div>
-          <div class="flex justify-between items-center p-3 rounded-xl neu-inset">
+          <div class="flex justify-between items-center p-2.5 rounded-lg neu-inset">
             <span>{{ t('toggleShortcuts') }}</span>
-            <div class="flex gap-1">
-              <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">?</kbd>
-              <span class="text-slate-400 self-center">or</span>
-              <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">Ctrl + K</kbd>
+            <div class="flex gap-1 items-center">
+              <kbd class="px-1.5 py-0.5 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded">?</kbd>
+              <span class="text-slate-500 text-[10px]">or</span>
+              <kbd class="px-1.5 py-0.5 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded">Ctrl + K</kbd>
             </div>
           </div>
-          <div class="flex justify-between items-center p-3 rounded-xl neu-inset">
+          <div class="flex justify-between items-center p-2.5 rounded-lg neu-inset">
             <span>{{ t('closeModal') }}</span>
-            <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">Esc</kbd>
+            <kbd class="px-2 py-0.5 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded">Esc</kbd>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Onboarding Tour (first visit) -->
+    <!-- Onboarding Tour -->
     <OnboardingTour />
   </div>
 </template>
