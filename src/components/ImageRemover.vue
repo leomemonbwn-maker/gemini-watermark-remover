@@ -81,7 +81,7 @@ function getEngine() {
 
 const fileInput = ref(null);
 const dragOver = ref(false);
-const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, viewMode, sliderPos, format }
+const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, configs, viewMode, sliderPos, format }
 const copiedIdx = ref(-1);
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
@@ -207,7 +207,7 @@ async function handleFiles(fileList) {
         displayName: file.name.replace(/\.[^/.]+$/, '').slice(0, 24),
         status: 'processing',
         originalSrc: '', url: '', blob: null,
-        width: 0, height: 0, config: null,
+        width: 0, height: 0, config: null, configs: [],
         viewMode: 'sideBySide', sliderPos: 50,
         format: 'png',
         showAnalyst: false,
@@ -217,7 +217,7 @@ async function handleFiles(fileList) {
 
     try {
       await new Promise(r => setTimeout(r, 150));
-      const result = await engine.process(file);
+      const result = await engine.processMulti(file);
 
       item.status = 'done';
       item.originalSrc = result.originalSrc;
@@ -226,6 +226,7 @@ async function handleFiles(fileList) {
       item.width = result.width;
       item.height = result.height;
       item.config = result.config;
+      item.configs = result.configs || [result.config];
 
       // Auto-save to history
       addEntry({
@@ -264,15 +265,19 @@ async function handleImageClick(e, item) {
 
   const newConfig = pointTargetWatermark(item.width, item.height, targetX, targetY);
 
+  // Add the pin-point to existing auto-detected configs and re-process all
+  const combinedConfigs = [...(item.configs || []).filter(c => !c.isCustomPoint), newConfig];
+
   item.status = 'processing';
   try {
     const engine = await getEngine();
-    const result = await engine.process(item.file, newConfig);
+    const result = await engine.processMulti(item.file, combinedConfigs);
     item.status = 'done';
     if (item.url) URL.revokeObjectURL(item.url);
     item.url = URL.createObjectURL(result.blob);
     item.blob = result.blob;
     item.config = result.config;
+    item.configs = result.configs || [result.config];
 
     calculatePSNR(result.originalSrc, result.blob).then((score) => {
       if (score !== null) item.psnr = score;
@@ -562,8 +567,9 @@ function reset() {
             <div class="flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-1.5">
               <div class="flex items-center gap-2 overflow-hidden">
                 <h3 class="font-bold text-white text-xs truncate max-w-[180px] sm:max-w-xs">{{ item.displayName }}</h3>
-                <span v-if="item.status === 'done' && item.config" class="text-[9px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
-                  {{ item.config.isCustomPoint ? '📍 Pinned' : '✨ Auto' }}
+                <span v-if="item.status === 'done' && item.configs && item.configs.length" class="text-[9px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
+                  {{ item.configs.some(c => c.isCustomPoint) ? '📍 Pinned' : '✨ Auto' }}
+                  · {{ item.configs.length }} found
                 </span>
               </div>
 
@@ -608,22 +614,25 @@ function reset() {
                       @click="handleImageClick($event, item)"
                     />
 
-                    <!-- Watermark Target Overlay -->
-                    <div
-                      v-if="item.status === 'done' && item.config"
-                      class="absolute pointer-events-none transition-all duration-150"
-                      :style="{
-                        left: `${(item.config.x / item.width) * 100}%`,
-                        top: `${(item.config.y / item.height) * 100}%`,
-                        width: `${(item.config.size / item.width) * 100}%`,
-                        height: `${(item.config.size / item.height) * 100}%`,
-                      }"
-                    >
-                      <div class="absolute inset-0 border border-neon-pink rounded animate-pulse"></div>
-                      <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[7px] font-mono font-bold text-white bg-neon-pink px-1 rounded shadow">
-                        TARGET
-                      </span>
-                    </div>
+                    <!-- Watermark Target Overlays (one per detection) -->
+                    <template v-if="item.status === 'done' && item.configs && item.configs.length">
+                      <div
+                        v-for="(cfg, ci) in item.configs"
+                        :key="ci"
+                        class="absolute pointer-events-none transition-all duration-150"
+                        :style="{
+                          left: `${(cfg.x / item.width) * 100}%`,
+                          top: `${(cfg.y / item.height) * 100}%`,
+                          width: `${(cfg.size / item.width) * 100}%`,
+                          height: `${(cfg.size / item.height) * 100}%`,
+                        }"
+                      >
+                        <div :class="['absolute inset-0 border rounded animate-pulse', cfg.isCustomPoint ? 'border-neon-green' : 'border-neon-pink']"></div>
+                        <span :class="['absolute -top-4 left-1/2 -translate-x-1/2 text-[7px] font-mono font-bold text-white px-1 rounded shadow', cfg.isCustomPoint ? 'bg-neon-green' : 'bg-neon-pink']">
+                          {{ cfg.isCustomPoint ? '📍 PIN' : `#${ci + 1}` }}
+                        </span>
+                      </div>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -711,6 +720,16 @@ function reset() {
               >
                 <iconify-icon icon="ph:share-network-bold" width="14"></iconify-icon>
               </button>
+
+              <a
+                href="/donate/"
+                target="_blank"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-neon-pink rounded-lg transition-all flex items-center gap-1 min-h-[34px] no-underline"
+                title="Support this project"
+              >
+                <iconify-icon icon="ph:heart-bold" width="13" class="text-neon-pink"></iconify-icon>
+                <span class="hidden sm:inline">Donate</span>
+              </a>
             </div>
 
             <!-- Quality Score -->

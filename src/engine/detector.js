@@ -1,10 +1,48 @@
-// 100% Precision Watermark Location Detector & Point-Targeting Engine.
-// Evaluates exact Gemini corner margins (32px, 24px, 48px, 64px) across 4 corners with high precision,
-// and supports exact Tap-to-Pin coordinates.
+// Full-Image Multi-Scale Sliding Window Watermark Detector.
+// Scans the ENTIRE image at multiple template scales to find all Gemini sparkle
+// watermarks — not just corners.  Returns an array of non-overlapping detections
+// sorted by confidence score.
 
 import { calculateAlphaMap } from './alphaMap.js';
 
-export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
+// ── Non-Maximum Suppression ──────────────────────────────────────────────────
+// Keeps only the strongest non-overlapping detections (IoU > threshold → drop).
+
+function computeIoU(a, b) {
+    const x1 = Math.max(a.x, b.x);
+    const y1 = Math.max(a.y, b.y);
+    const x2 = Math.min(a.x + a.width, b.x + b.width);
+    const y2 = Math.min(a.y + a.height, b.y + b.height);
+    const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+    if (inter === 0) return 0;
+    const areaA = a.width * a.height;
+    const areaB = b.width * b.height;
+    return inter / (areaA + areaB - inter);
+}
+
+function nms(detections, iouThreshold = 0.3) {
+    // Sort descending by score
+    const sorted = detections.slice().sort((a, b) => b.score - a.score);
+    const kept = [];
+    const suppressed = new Set();
+
+    for (let i = 0; i < sorted.length; i++) {
+        if (suppressed.has(i)) continue;
+        kept.push(sorted[i]);
+        for (let j = i + 1; j < sorted.length; j++) {
+            if (suppressed.has(j)) continue;
+            if (computeIoU(sorted[i], sorted[j]) > iouThreshold) {
+                suppressed.add(j);
+            }
+        }
+    }
+    return kept;
+}
+
+// ── Multi-Scale Sliding Window Scanner ───────────────────────────────────────
+// Returns WatermarkDetection[] — every distinct watermark found in the image.
+
+export function autoDetectWatermarks(imageData, bg96Image, bg48Image) {
     const imgW = imageData.width;
     const imgH = imageData.height;
 
@@ -20,109 +58,194 @@ export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
         width: defaultSize,
         height: defaultSize,
         corner: 'BR',
-        detected: false
+        detected: false,
+        score: 0,
     };
 
     if (!bg96Image || imgW < 128 || imgH < 128) {
-        return fallback;
+        return [fallback];
     }
 
     try {
-        const candidateSizes = [64, 48, 96, 80, 56];
-        const candidateMargins = [32, 24, 48, 64, 16, 128, 96];
-
-        let bestContrastScore = 0;
-        let bestConfig = null;
+        const candidateSizes = [48, 56, 64, 80, 96];
+        const rawCandidates = [];
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-        // High-precision margin search across corners
+        // Pre-compute the pixel array for fast access
+        const pixels = imageData.data;
+
         for (const size of candidateSizes) {
             if (size > imgW || size > imgH) continue;
 
+            // Render the sparkle template at this scale
             canvas.width = size;
             canvas.height = size;
             ctx.clearRect(0, 0, size, size);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(size <= 48 && bg48Image ? bg48Image : bg96Image, 0, 0, size, size);
 
             const tmplData = ctx.getImageData(0, 0, size, size);
             const alphaMap = calculateAlphaMap(tmplData);
 
-            for (const margin of candidateMargins) {
-                // Check all 4 corners: BR (Bottom-Right), BL (Bottom-Left), TR (Top-Right), TL (Top-Left)
+            // Pre-classify template pixels into star / background index lists
+            const starPixels = [];  // { idx, alpha }
+            const bgPixels = [];    // { idx }
+            for (let row = 0; row < size; row += 2) {
+                for (let col = 0; col < size; col += 2) {
+                    const alphaIdx = row * size + col;
+                    const a = alphaMap[alphaIdx];
+                    if (a > 0.3) {
+                        starPixels.push({ row, col, alpha: a });
+                    } else if (a < 0.05) {
+                        bgPixels.push({ row, col });
+                    }
+                }
+            }
+
+            // Need enough template structure to be meaningful
+            if (starPixels.length < 8 || bgPixels.length < 8) continue;
+
+            // Sliding window stride — balance speed vs coverage
+            // For detection we can afford a coarser stride since the sparkle is
+            // quite spatially distinct.
+            const stride = Math.max(4, Math.floor(size / 3));
+
+            // ── Phase 1: Fast corner scan (original margins, all 4 corners) ──
+            // We scan corners with pixel-level precision first because they are
+            // by far the most common placement.
+            const cornerMargins = [16, 24, 32, 48, 64, 96, 128];
+            for (const margin of cornerMargins) {
                 const corners = [
                     { name: 'BR', x: imgW - margin - size, y: imgH - margin - size },
                     { name: 'BL', x: margin, y: imgH - margin - size },
                     { name: 'TR', x: imgW - margin - size, y: margin },
-                    { name: 'TL', x: margin, y: margin }
+                    { name: 'TL', x: margin, y: margin },
                 ];
 
                 for (const c of corners) {
                     const { x, y, name } = c;
                     if (x < 0 || y < 0 || x + size > imgW || y + size > imgH) continue;
 
-                    let starBrightSum = 0;
-                    let starWeightSum = 0;
-                    let bgBrightSum = 0;
-                    let bgWeightSum = 0;
-
-                    for (let row = 0; row < size; row += 2) {
-                        for (let col = 0; col < size; col += 2) {
-                            const alphaIdx = row * size + col;
-                            const a = alphaMap[alphaIdx];
-                            const imgIdx = ((y + row) * imgW + (x + col)) * 4;
-                            const brightness = (imageData.data[imgIdx] + imageData.data[imgIdx + 1] + imageData.data[imgIdx + 2]) / 3.0;
-
-                            if (a > 0.3) {
-                                starBrightSum += brightness * a;
-                                starWeightSum += a;
-                            } else if (a < 0.05) {
-                                bgBrightSum += brightness;
-                                bgWeightSum += 1;
-                            }
-                        }
+                    const result = scoreRegion(pixels, imgW, x, y, starPixels, bgPixels);
+                    if (result) {
+                        rawCandidates.push({
+                            size, x, y,
+                            width: size, height: size,
+                            corner: name,
+                            detected: true,
+                            score: result.score,
+                        });
                     }
+                }
+            }
 
-                    if (starWeightSum > 0 && bgWeightSum > 0) {
-                        const avgStarBright = starBrightSum / starWeightSum;
-                        const avgBgBright = bgBrightSum / bgWeightSum;
-                        const contrastDelta = avgStarBright - avgBgBright;
+            // ── Phase 2: Full-image sliding window ──
+            // Covers arbitrary placements the corner scan misses.
+            // For very large images, downsample the stride to keep iteration bounded.
+            const maxPositions = 100000; // hard cap on total windows per scale
+            let dynamicStride = stride;
+            const hSteps = Math.ceil((imgW - size) / dynamicStride);
+            const vSteps = Math.ceil((imgH - size) / dynamicStride);
+            if (hSteps * vSteps > maxPositions) {
+                dynamicStride = Math.ceil(Math.sqrt((imgW - size) * (imgH - size) / maxPositions));
+            }
 
-                        // Require positive contrast delta (watermark star must be brighter than surrounding background)
-                        if (contrastDelta > 1.5) {
-                            const compositeScore = (contrastDelta * 5.0) + (avgStarBright * 0.2);
-
-                            if (compositeScore > bestContrastScore) {
-                                bestContrastScore = compositeScore;
-                                bestConfig = {
-                                    size,
-                                    x,
-                                    y,
-                                    width: size,
-                                    height: size,
-                                    corner: name,
-                                    detected: true,
-                                    score: compositeScore
-                                };
-                            }
-                        }
+            for (let wy = 0; wy + size <= imgH; wy += dynamicStride) {
+                for (let wx = 0; wx + size <= imgW; wx += dynamicStride) {
+                    const result = scoreRegion(pixels, imgW, wx, wy, starPixels, bgPixels);
+                    if (result) {
+                        rawCandidates.push({
+                            size, x: wx, y: wy,
+                            width: size, height: size,
+                            corner: classifyCorner(wx, wy, size, imgW, imgH),
+                            detected: true,
+                            score: result.score,
+                        });
                     }
                 }
             }
         }
 
-        if (bestConfig) {
-            return bestConfig;
+        if (rawCandidates.length > 0) {
+            const detections = nms(rawCandidates, 0.3);
+            return detections.length > 0 ? detections : [fallback];
         }
     } catch (err) {
         console.warn('Watermark auto-detection fallback:', err);
     }
 
-    return fallback;
+    return [fallback];
 }
 
-// Point-target configuration: centers watermark box at exact tapped pixel (centerX, centerY)
+// ── Score a candidate region ─────────────────────────────────────────────────
+// Returns { score } if the region looks like a watermark, or null otherwise.
+
+function scoreRegion(pixels, imgW, x, y, starPixels, bgPixels) {
+    let starBrightSum = 0;
+    let starWeightSum = 0;
+
+    for (let i = 0; i < starPixels.length; i++) {
+        const sp = starPixels[i];
+        const imgIdx = ((y + sp.row) * imgW + (x + sp.col)) * 4;
+        const brightness = (pixels[imgIdx] + pixels[imgIdx + 1] + pixels[imgIdx + 2]) / 3.0;
+        starBrightSum += brightness * sp.alpha;
+        starWeightSum += sp.alpha;
+    }
+
+    let bgBrightSum = 0;
+    for (let i = 0; i < bgPixels.length; i++) {
+        const bp = bgPixels[i];
+        const imgIdx = ((y + bp.row) * imgW + (x + bp.col)) * 4;
+        bgBrightSum += (pixels[imgIdx] + pixels[imgIdx + 1] + pixels[imgIdx + 2]) / 3.0;
+    }
+
+    const avgStarBright = starBrightSum / starWeightSum;
+    const avgBgBright = bgBrightSum / bgPixels.length;
+    const contrastDelta = avgStarBright - avgBgBright;
+
+    // Watermark star must be brighter than surrounding background.
+    // Threshold raised to 3.0 (from 1.5) to reduce false positives in the
+    // full-image scan where we evaluate far more candidate positions.
+    if (contrastDelta > 3.0) {
+        const compositeScore = (contrastDelta * 5.0) + (avgStarBright * 0.2);
+        return { score: compositeScore };
+    }
+
+    return null;
+}
+
+// ── Classify which corner/region a detection sits in ─────────────────────────
+
+function classifyCorner(x, y, size, imgW, imgH) {
+    const cx = x + size / 2;
+    const cy = y + size / 2;
+    const inLeft = cx < imgW * 0.35;
+    const inRight = cx > imgW * 0.65;
+    const inTop = cy < imgH * 0.35;
+    const inBottom = cy > imgH * 0.65;
+
+    if (inBottom && inRight) return 'BR';
+    if (inBottom && inLeft) return 'BL';
+    if (inTop && inRight) return 'TR';
+    if (inTop && inLeft) return 'TL';
+    if (inBottom) return 'B';
+    if (inTop) return 'T';
+    if (inLeft) return 'L';
+    if (inRight) return 'R';
+    return 'Center';
+}
+
+// ── Backward-compatible single-detection wrapper ─────────────────────────────
+
+export function autoDetectWatermark(imageData, bg96Image, bg48Image) {
+    return autoDetectWatermarks(imageData, bg96Image, bg48Image)[0];
+}
+
+// ── Point-target: centers watermark box at exact tapped pixel ────────────────
+
 export function pointTargetWatermark(imgW, imgH, centerX, centerY, customSize = null) {
     const shortSide = Math.min(imgW, imgH);
     const size = customSize || (shortSide > 512 ? 64 : 48);
@@ -139,7 +262,7 @@ export function pointTargetWatermark(imgW, imgH, centerX, centerY, customSize = 
         detected: true,
         isCustomPoint: true,
         tappedX: Math.round(centerX),
-        tappedY: Math.round(centerY)
+        tappedY: Math.round(centerY),
+        score: Infinity,
     };
 }
-

@@ -1,7 +1,7 @@
 import { calculateAlphaMap } from './alphaMap.js';
 import { removeWatermark } from './blendModes.js';
 import { getWatermarkInfo } from './geometry.js';
-import { autoDetectWatermark } from './detector.js';
+import { autoDetectWatermark, autoDetectWatermarks } from './detector.js';
 
 export class WatermarkEngine {
     constructor(bg48, bg96) {
@@ -101,6 +101,50 @@ export class WatermarkEngine {
             width: img.width,
             height: img.height,
             config
+        };
+    }
+
+    /**
+     * Multi-watermark removal: scans the full image for ALL watermarks and
+     * removes each one.  Returns configs[] (plural) so the UI can render
+     * overlays for every detection.
+     */
+    async processMulti(imageFile, customConfigs = null) {
+        const objectUrl = URL.createObjectURL(imageFile);
+        const img = await new Promise((resolve, reject) => {
+            const i = new Image();
+            i.onload = () => resolve(i);
+            i.onerror = reject;
+            i.src = objectUrl;
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        // Use custom configs if provided, otherwise auto-detect all watermarks
+        const configs = customConfigs || autoDetectWatermarks(imageData, this.bg96, this.bg48);
+
+        // Remove each watermark sequentially on the same pixel buffer
+        for (const config of configs) {
+            const alphaMap = await this.getAlphaMap(config.size);
+            removeWatermark(imageData, alphaMap, config);
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+
+        return {
+            blob: await new Promise(r => canvas.toBlob(r, 'image/png')),
+            originalSrc: objectUrl,
+            width: img.width,
+            height: img.height,
+            configs,
+            // Backward-compat: expose the primary detection as `config`
+            config: configs[0] || null,
         };
     }
 
