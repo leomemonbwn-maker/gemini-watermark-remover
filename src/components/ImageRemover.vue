@@ -442,11 +442,11 @@ function reset() {
 
 <template>
   <div
-    class="max-w-5xl mx-auto cyber-glass rounded-3xl p-4 sm:p-6 shadow-2xl relative z-10 transition-all duration-300"
+    class="max-w-5xl mx-auto neu-card rounded-3xl p-4 sm:p-6 shadow-neu-raised relative z-10 transition-all duration-300"
   >
     <!-- Advanced tuner with Touch & Drag Canvas -->
     <div v-if="tunerActive" class="animate-fade-in">
-      <div class="flex flex-col lg:flex-row gap-6">
+      <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div class="flex-1 min-w-0">
           <WatermarkTuner :settings="tunerSettings" :frame="tunerFrame" :bg-img="tunerBgImg" :base="tunerBase" />
           <p class="text-xs text-slate-400 mt-3 leading-relaxed text-center">
@@ -454,23 +454,25 @@ function reset() {
             <strong>Touch & Drag directly on the Preview canvas</strong> to move the watermark target box anywhere!
           </p>
         </div>
-        <div class="w-full lg:w-60 flex-shrink-0">
-          <div class="cyber-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
+
+        <!-- Desktop sidebar -->
+        <div class="hidden lg:block w-60 flex-shrink-0">
+          <div class="neu-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
             <h2 class="font-bold text-white text-sm sm:text-base">Export</h2>
             <label class="block">
               <div class="text-xs font-bold text-slate-300 mb-1">Preset</div>
               <select
                 v-model="presetId"
-                class="w-full text-xs font-semibold cyber-pill rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none cursor-pointer"
+                class="w-full text-xs font-semibold neu-pill rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none cursor-pointer"
               >
                 <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
               </select>
-              <p class="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-1">{{ currentPreset.desc }}</p>
+              <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1">{{ currentPreset.desc }}</p>
             </label>
-            <button @click="resetTunerSettings" class="w-full text-xs font-semibold text-slate-400 hover:text-neon-cyan transition-colors">
+            <button @click="resetTunerSettings" class="w-full text-xs font-semibold text-slate-400 hover:text-neon-cyan transition-colors py-1">
               Reset sliders
             </button>
-            <button @click="downloadTuner" class="btn-neon-cyan group w-full py-3 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all">
+            <button @click="downloadTuner" class="btn-neon-cyan group w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all">
               <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download PNG
               </div>
@@ -485,15 +487,40 @@ function reset() {
           </div>
         </div>
       </div>
+
+      <!-- Mobile actions for tuner -->
+      <div class="lg:hidden mt-4">
+        <div class="neu-card rounded-2xl p-4 space-y-3">
+          <h2 class="font-bold text-white text-sm">Export</h2>
+          <label class="block">
+            <div class="text-xs font-bold text-slate-300 mb-1">Preset</div>
+            <select
+              v-model="presetId"
+              class="w-full text-xs font-semibold neu-pill rounded-xl px-2.5 py-2.5 text-slate-200 focus:outline-none cursor-pointer min-h-[40px]"
+            >
+              <option v-for="p in IMG_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
+            </select>
+          </label>
+          <button @click="downloadTuner" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all">
+            <div class="flex items-center justify-center gap-2 text-sm">
+              <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download PNG
+            </div>
+          </button>
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+            <span>{{ t('processAnother') }}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Upload area -->
+    <!-- Upload area (neumorphic inset) -->
     <div
       v-else-if="!hasResults"
-      class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] sm:min-h-[16rem] py-6 sm:py-10 px-4 rounded-3xl glass-dropzone transition-all cursor-pointer select-none"
+      class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] sm:min-h-[16rem] py-6 sm:py-10 px-4 rounded-3xl neu-dropzone transition-all cursor-pointer select-none"
       :class="
         dragOver
-          ? '!border-neon-pink !bg-neon-pink/10 shadow-neon-pink scale-[1.01]'
+          ? '!border-neon-pink !shadow-neon-pink scale-[1.01]'
           : ''
       "
       role="button"
@@ -507,11 +534,11 @@ function reset() {
       @drop.prevent="onDrop"
     >
       <div class="flex flex-col items-center justify-center relative text-center">
-        <div class="relative flex items-center justify-center mb-2.5 sm:mb-3">
-          <div class="absolute inset-0 rounded-full bg-neon-pink/25 animate-ripple"></div>
-          <div class="absolute -inset-1 rounded-full bg-neon-cyan/20 animate-pulse-glow"></div>
+        <div class="relative flex items-center justify-center mb-3 sm:mb-4">
+          <div class="absolute inset-0 rounded-full bg-neon-pink/15 animate-ripple"></div>
+          <div class="absolute -inset-1 rounded-full bg-neon-cyan/10 animate-pulse-glow"></div>
           <div
-            class="relative w-12 h-12 sm:w-16 sm:h-16 cyber-pill rounded-full shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+            class="relative w-14 h-14 sm:w-16 sm:h-16 neu-pill rounded-full shadow-neu-raised flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
           >
             <iconify-icon
               icon="ph:upload-simple-bold"
@@ -524,12 +551,12 @@ function reset() {
         <p
           class="mb-1 text-sm sm:text-base font-extrabold text-slate-100 group-hover:text-neon-pink transition-colors tracking-tight px-2"
         >
-          Click to upload, drag images, or <kbd class="px-1.5 py-0.5 text-[10px] sm:text-xs font-mono font-bold cyber-pill rounded text-neon-cyan">Ctrl + V</kbd> to paste
+          Click to upload, drag images, or <kbd class="px-1.5 py-0.5 text-[10px] sm:text-xs font-mono font-bold neu-pill rounded text-neon-cyan">Ctrl + V</kbd> to paste
         </p>
         <p class="text-xs sm:text-sm text-slate-500">PNG, JPG, WebP · Multiple files supported</p>
         
         <label class="mt-3 sm:mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-400 cursor-pointer" @click.stop>
-          <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
+          <input type="checkbox" v-model="advanced" class="w-4 h-4 rounded" />
           <span>Advanced: touch & drag target box</span>
         </label>
       </div>
@@ -547,34 +574,34 @@ function reset() {
 
     <!-- Results -->
     <div v-else class="text-left mt-2 animate-fade-in">
-      <div class="flex flex-col lg:flex-row gap-6">
+      <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div class="flex-1 space-y-4 sm:space-y-6 min-w-0">
           <div
             v-for="(item, i) in items"
             :key="i"
-            class="p-3 sm:p-4 liquid-glass-card rounded-2xl space-y-3"
+            class="p-3 sm:p-4 neu-card rounded-2xl space-y-3"
           >
             <!-- Card Header: Title + Status + View Toggle -->
-            <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+            <div class="flex items-center justify-between border-b border-white/5 pb-2.5 flex-wrap gap-2">
               <div class="flex items-center gap-2 overflow-hidden">
                 <h3 class="font-bold text-white text-xs sm:text-sm truncate">{{ item.displayName }}</h3>
                 
-                <span v-if="item.status === 'done' && item.config" class="text-[10px] font-mono font-bold text-neon-cyan bg-neon-cyan/15 px-2 py-0.5 rounded-full flex-shrink-0">
-                  {{ item.config.isCustomPoint ? `📍 Pinned (${item.config.tappedX}, ${item.config.tappedY})` : '✨ 100% Auto-Located' }}
+                <span v-if="item.status === 'done' && item.config" class="text-[10px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                  {{ item.config.isCustomPoint ? `📍 Pinned (${item.config.tappedX}, ${item.config.tappedY})` : '✨ Auto-Located' }}
                 </span>
               </div>
 
-              <!-- View Mode Toggle -->
-              <div v-if="item.status === 'done'" class="flex items-center gap-1 p-0.5 rounded-xl bg-white/5 text-xs font-bold">
+              <!-- View Mode Toggle (neumorphic) -->
+              <div v-if="item.status === 'done'" class="flex items-center gap-1 p-1 rounded-xl neu-inset text-xs font-bold">
                 <button
                   @click="item.viewMode = 'sideBySide'"
-                  :class="['px-2.5 py-1 rounded-lg transition-all', item.viewMode === 'sideBySide' ? 'bg-white/10 text-neon-pink shadow-sm' : 'text-slate-400 hover:text-white']"
+                  :class="['px-2.5 py-1.5 rounded-lg transition-all min-h-[32px]', item.viewMode === 'sideBySide' ? 'bg-neu-raised text-neon-pink shadow-neu-raised-sm' : 'text-slate-400 hover:text-white']"
                 >
                   Side-by-Side
                 </button>
                 <button
                   @click="item.viewMode = 'slider'"
-                  :class="['px-2.5 py-1 rounded-lg transition-all', item.viewMode === 'slider' ? 'bg-white/10 text-neon-pink shadow-sm' : 'text-slate-400 hover:text-white']"
+                  :class="['px-2.5 py-1.5 rounded-lg transition-all min-h-[32px]', item.viewMode === 'slider' ? 'bg-neu-raised text-neon-pink shadow-neu-raised-sm' : 'text-slate-400 hover:text-white']"
                 >
                   Compare Slider
                 </button>
@@ -584,8 +611,8 @@ function reset() {
             <!-- VIEW MODE 1: Side-by-Side -->
             <div v-if="item.viewMode === 'sideBySide'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <!-- Original -->
-              <div class="liquid-glass-card rounded-xl overflow-hidden group relative">
-                <div class="px-3 py-1.5 border-b border-white/5 flex justify-between items-center bg-white/5">
+              <div class="neu-card rounded-xl overflow-hidden group relative">
+                <div class="px-3 py-2 border-b border-white/5 flex justify-between items-center bg-white/3">
                   <span class="font-bold text-slate-300 text-[11px] flex items-center gap-1">
                     <iconify-icon icon="ph:image-bold" class="text-neon-cyan"></iconify-icon>
                     Original Photo
@@ -594,10 +621,9 @@ function reset() {
                 </div>
 
                 <div class="p-2 checker flex items-center justify-center h-48 sm:h-56 relative overflow-hidden">
-                  <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
-                    <div class="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent absolute top-0 animate-pulse shadow-[0_0_15px_#00f2fe]"></div>
+                  <div v-if="item.status === 'loading'" class="absolute inset-0 z-20 bg-black/40 flex flex-col items-center justify-center pointer-events-none">
                     <div class="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-transparent mb-2"></div>
-                    <span class="text-xs font-mono font-extrabold text-cyan-300 tracking-wider animate-pulse">🔍 100% AI Scanning...</span>
+                    <span class="text-xs font-mono font-extrabold text-cyan-300 tracking-wider animate-pulse">🔍 Scanning...</span>
                   </div>
 
                   <div class="relative inline-block max-h-full max-w-full">
@@ -609,7 +635,7 @@ function reset() {
                       @click="handleImageClick($event, item)"
                     />
 
-                    <!-- Watermark Preview Overlay — pulsing target box directly on original image -->
+                    <!-- Watermark Preview Overlay -->
                     <div
                       v-if="item.status === 'done' && item.config"
                       class="absolute pointer-events-none transition-all duration-200"
@@ -620,7 +646,7 @@ function reset() {
                         height: `${(item.config.size / item.height) * 100}%`,
                       }"
                     >
-                      <div class="absolute inset-0 border-2 border-neon-pink rounded animate-pulse shadow-[0_0_10px_#ff2d95]"></div>
+                      <div class="absolute inset-0 border-2 border-neon-pink rounded animate-pulse shadow-neon-pink"></div>
                       <div class="absolute inset-[-4px] border border-neon-pink/40 rounded"></div>
                       <!-- Crosshair lines -->
                       <div class="absolute top-1/2 left-0 right-0 h-px bg-neon-pink/60"></div>
@@ -635,8 +661,8 @@ function reset() {
               </div>
 
               <!-- Cleaned -->
-              <div class="cyber-card rounded-xl overflow-hidden border-neon-cyan/30 ring-1 ring-neon-cyan/20">
-                <div class="px-3 py-1.5 border-b border-neon-cyan/20 bg-neon-cyan/10 flex justify-between items-center">
+              <div class="neu-card rounded-xl overflow-hidden" style="border-color: rgba(0, 240, 255, 0.15);">
+                <div class="px-3 py-2 border-b border-neon-cyan/10 bg-neon-cyan/5 flex justify-between items-center">
                   <span class="font-bold text-neon-cyan text-[11px]">Cleaned</span>
                   <span class="text-[10px] font-mono text-neon-cyan font-bold">100% Lossless</span>
                 </div>
@@ -650,7 +676,7 @@ function reset() {
             <!-- VIEW MODE 2: Live Interactive Compare Slider -->
             <div
               v-else-if="item.status === 'done'"
-              class="relative w-full h-56 sm:h-72 rounded-xl overflow-hidden checker border border-neon-cyan/30 cursor-ew-resize select-none touch-none"
+              class="relative w-full h-56 sm:h-72 rounded-xl overflow-hidden checker border border-neon-cyan/15 cursor-ew-resize select-none touch-none"
               @pointerdown="onSliderPointerDown($event, item)"
               @pointermove="onSliderPointerMove"
               @pointerup="onSliderPointerUp"
@@ -659,25 +685,25 @@ function reset() {
               <img :src="item.url" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" />
               <img :src="item.originalSrc" class="absolute inset-0 w-full h-full object-contain mx-auto pointer-events-none" draggable="false" :style="{ clipPath: `inset(0 ${100 - item.sliderPos}% 0 0)` }" />
 
-              <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white backdrop-blur-md">Before</span>
-              <span class="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-neon-cyan/90 text-white backdrop-blur-md">After</span>
+              <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white">Before</span>
+              <span class="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-neon-cyan/90 text-white">After</span>
 
-              <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)] pointer-events-none" :style="{ left: `${item.sliderPos}%` }">
-                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white text-neon-pink shadow-lg flex items-center justify-center font-bold">
+              <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] pointer-events-none" :style="{ left: `${item.sliderPos}%` }">
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white text-neon-pink shadow-neu-raised flex items-center justify-center font-bold">
                   <iconify-icon icon="ph:arrows-left-right-bold" width="14"></iconify-icon>
                 </div>
               </div>
             </div>
 
             <!-- Touch & Drag Target Box Action Button -->
-            <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-neon-cyan/10 border border-neon-cyan/20 text-xs font-semibold text-neon-cyan">
+            <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-neon-cyan/5 border border-neon-cyan/10 text-xs font-semibold text-neon-cyan flex-wrap">
               <span class="flex items-center gap-1.5">
-                <iconify-icon icon="ph:hand-swipe-left-bold" class="text-base text-neon-cyan animate-pulse"></iconify-icon>
-                <span>Watermark custom position? Touch & Drag target box anywhere!</span>
+                <iconify-icon icon="ph:hand-swipe-left-bold" class="text-base text-neon-cyan"></iconify-icon>
+                <span>Watermark custom position? Touch & Drag target box!</span>
               </span>
               <button
                 @click="openTunerForItem(item)"
-                class="px-3 py-1.5 rounded-xl bg-neon-cyan hover:bg-neon-cyan/80 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-md shadow-neon-cyan/20"
+                class="px-3 py-2 rounded-xl bg-neon-cyan hover:bg-neon-cyan/80 text-white font-bold text-xs transition-all flex items-center gap-1 shadow-sm min-h-[36px]"
               >
                 <iconify-icon icon="ph:crosshair-bold"></iconify-icon>
                 Touch & Drag Target Box
@@ -688,7 +714,7 @@ function reset() {
             <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5">
               <button
                 @click="item.showAnalyst = !item.showAnalyst"
-                class="btn-micro-pop cyber-pill px-3 py-2 text-xs font-bold text-slate-200 hover:text-neon-purple rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+                class="btn-micro-pop neu-pill px-3 py-2.5 text-xs font-bold text-slate-200 hover:text-neon-purple rounded-xl transition-all flex items-center gap-1.5 min-h-[40px]"
               >
                 <iconify-icon icon="ph:sparkle-bold" width="14" class="text-neon-purple"></iconify-icon>
                 <span>Ask AI</span>
@@ -698,7 +724,7 @@ function reset() {
                 <span>Format:</span>
                 <select
                   v-model="item.format"
-                  class="text-xs font-bold cyber-pill rounded-lg px-2 py-1 text-slate-200 focus:outline-none cursor-pointer"
+                  class="text-xs font-bold neu-pill rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none cursor-pointer min-h-[36px]"
                 >
                   <option value="png">PNG (Lossless)</option>
                   <option value="webp">WebP (Compact)</option>
@@ -710,7 +736,7 @@ function reset() {
 
               <button
                 @click="downloadFormatted(item)"
-                class="btn-micro-pop flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-neon-cyan hover:bg-neon-cyan/80 rounded-xl transition-all shadow-md shadow-neon-cyan/20"
+                class="btn-micro-pop flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-neon-cyan hover:bg-neon-cyan/80 rounded-xl transition-all shadow-sm min-h-[40px]"
               >
                 <iconify-icon icon="ph:download-simple-bold" width="14"></iconify-icon>
                 <span>Download {{ item.format.toUpperCase() }}</span>
@@ -718,7 +744,7 @@ function reset() {
 
               <button
                 @click="copyToClipboard(item, i)"
-                class="btn-micro-pop cyber-pill px-3 py-2 text-xs font-bold text-slate-200 hover:text-neon-cyan rounded-xl transition-all flex items-center gap-1"
+                class="btn-micro-pop neu-pill px-3 py-2.5 text-xs font-bold text-slate-200 hover:text-neon-cyan rounded-xl transition-all flex items-center gap-1 min-h-[40px]"
               >
                 <iconify-icon :icon="copiedIdx === i ? 'ph:check-bold' : 'ph:copy-bold'" width="14" :class="copiedIdx === i ? 'text-neon-green' : ''"></iconify-icon>
                 <span>{{ copiedIdx === i ? 'Copied' : 'Copy' }}</span>
@@ -728,7 +754,7 @@ function reset() {
               <button
                 v-if="canShare"
                 @click="shareImage(item)"
-                class="btn-micro-pop cyber-pill px-3 py-2 text-xs font-bold text-slate-200 hover:text-neon-green rounded-xl transition-all flex items-center gap-1"
+                class="btn-micro-pop neu-pill px-3 py-2.5 text-xs font-bold text-slate-200 hover:text-neon-green rounded-xl transition-all flex items-center gap-1 min-h-[40px]"
               >
                 <iconify-icon icon="ph:share-network-bold" width="14" class="text-neon-green"></iconify-icon>
                 <span>Share</span>
@@ -736,7 +762,7 @@ function reset() {
             </div>
 
             <!-- PSNR Quality Score Badge -->
-            <div v-if="item.psnr" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neon-green/10 border border-neon-green/20 text-xs font-bold mt-1">
+            <div v-if="item.psnr" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-neon-green/5 border border-neon-green/10 text-xs font-bold mt-1">
               <iconify-icon icon="ph:chart-line-up-bold" width="14" class="text-neon-green"></iconify-icon>
               <span class="text-neon-green">Quality Score: {{ item.psnr.toFixed(1) }} dB PSNR</span>
               <span class="text-slate-500 font-normal">{{ item.psnr > 45 ? '· Excellent' : item.psnr > 35 ? '· Great' : '· Good' }}</span>
@@ -751,16 +777,14 @@ function reset() {
           </div>
         </div>
 
-        <!-- Actions sidebar -->
-        <div class="w-full lg:w-60 flex-shrink-0">
-          <div
-            class="cyber-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-3"
-          >
+        <!-- Actions sidebar (desktop only) -->
+        <div class="hidden lg:block w-60 flex-shrink-0">
+          <div class="neu-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-3">
             <h2 class="font-bold text-white text-sm sm:text-base">Actions</h2>
             <button
               v-if="doneItems.length === 1"
               @click="downloadFormatted(doneItems[0])"
-              class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300"
+              class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all duration-300"
             >
               <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download
@@ -769,7 +793,7 @@ function reset() {
             <button
               v-if="doneItems.length > 1"
               @click="downloadAll"
-              class="btn-neon group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-pink/25 transition-all duration-300"
+              class="btn-neon group w-full py-3.5 rounded-xl font-bold text-white transition-all duration-300"
             >
               <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:file-zip-bold" width="18"></iconify-icon> Download All ZIP
@@ -783,6 +807,35 @@ function reset() {
               <span>{{ t('processAnother') }}</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Mobile action bar -->
+      <div class="lg:hidden mt-4">
+        <div class="neu-card rounded-2xl p-4 space-y-3">
+          <h2 class="font-bold text-white text-sm">Actions</h2>
+          <button
+            v-if="doneItems.length === 1"
+            @click="downloadFormatted(doneItems[0])"
+            class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all"
+          >
+            <div class="flex items-center justify-center gap-2 text-sm">
+              <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download
+            </div>
+          </button>
+          <button
+            v-if="doneItems.length > 1"
+            @click="downloadAll"
+            class="btn-neon group w-full py-3.5 rounded-xl font-bold text-white transition-all"
+          >
+            <div class="flex items-center justify-center gap-2 text-sm">
+              <iconify-icon icon="ph:file-zip-bold" width="18"></iconify-icon> Download All ZIP
+            </div>
+          </button>
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+            <span>{{ t('processAnother') }}</span>
+          </button>
         </div>
       </div>
     </div>

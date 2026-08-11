@@ -33,10 +33,10 @@ function onPointerUp() {
 
 <template>
   <figure v-show="available" class="max-w-xl mx-auto my-2 sm:my-4 select-none">
-    <div class="p-1 sm:p-2 rounded-2xl sm:rounded-3xl cyber-glass shadow-xl">
+    <div class="p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl neu-card shadow-neu-raised">
       <div
         ref="container"
-        class="group relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden shadow-inner border border-white/10 cursor-ew-resize touch-none"
+        class="group relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden shadow-neu-inset border border-white/5 cursor-ew-resize touch-none"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -64,21 +64,21 @@ function onPointerUp() {
 
         <!-- Labels -->
         <span
-          class="absolute top-2.5 left-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-900/80 text-white backdrop-blur-md border border-white/20 shadow-md"
+          class="absolute top-2.5 left-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-neu-surface/90 text-white shadow-neu-raised-sm border border-white/5"
           >Before</span
         >
         <span
-          class="absolute top-2.5 right-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-neon-cyan/85 text-white backdrop-blur-md border border-white/20 shadow-md shadow-neon-cyan/20"
+          class="absolute top-2.5 right-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-neon-cyan/85 text-white shadow-sm"
           >After</span
         >
 
-        <!-- Divider + handle -->
+        <!-- Divider + handle (neumorphic) -->
         <div
-          class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(255,255,255,0.9)] pointer-events-none"
+          class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)] pointer-events-none"
           :style="{ left: `${pos}%` }"
         >
           <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-2xl flex items-center justify-center text-neon-pink border border-white/80"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/95 shadow-neu-raised flex items-center justify-center text-neon-pink border border-white/80"
           >
             <iconify-icon icon="ph:arrows-left-right-bold" width="16" class="sm:w-5 sm:h-5"></iconify-icon>
           </div>

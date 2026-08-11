@@ -191,34 +191,34 @@ function reset() {
 
 <template>
   <div
-    class="max-w-5xl mx-auto cyber-glass rounded-3xl p-4 sm:p-6 shadow-2xl relative z-10 transition-all duration-300"
+    class="max-w-5xl mx-auto neu-card rounded-3xl p-4 sm:p-6 shadow-neu-raised relative z-10 transition-all duration-300"
   >
     <!-- Unsupported -->
     <div
       v-if="!supported"
-      class="flex flex-col items-center justify-center w-full h-56 rounded-2xl bg-red-500/10 border border-red-500/30 text-center px-6"
+      class="flex flex-col items-center justify-center w-full h-56 rounded-2xl bg-red-500/5 border border-red-500/20 text-center px-6"
     >
       <iconify-icon icon="ph:warning-circle-bold" width="36" class="text-red-500 mb-2"></iconify-icon>
       <p class="font-bold text-red-400">Your browser can't process video locally.</p>
       <p class="text-xs sm:text-sm text-red-500/80 mt-1">Please try the latest Chrome, Edge, or Safari on desktop/mobile.</p>
     </div>
 
-    <!-- Upload -->
+    <!-- Upload (neumorphic inset) -->
     <div
       v-else-if="status === 'idle'"
-      class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] sm:min-h-[16rem] py-6 sm:py-10 px-4 rounded-3xl glass-dropzone transition-all cursor-pointer select-none"
-      :class="dragOver ? '!border-neon-purple !bg-neon-purple/10 shadow-neon-purple scale-[1.01]' : ''"
+      class="group relative flex flex-col items-center justify-center w-full min-h-[14rem] sm:min-h-[16rem] py-6 sm:py-10 px-4 rounded-3xl neu-dropzone transition-all cursor-pointer select-none"
+      :class="dragOver ? '!border-neon-purple !shadow-neon-purple scale-[1.01]' : ''"
       role="button" tabindex="0" aria-label="Upload a video"
       @click="openPicker" @keydown.enter="openPicker"
       @dragover.prevent="dragOver = true" @dragenter.prevent="dragOver = true"
       @dragleave.prevent="dragOver = false" @drop.prevent="onDrop"
     >
       <div class="flex flex-col items-center justify-center relative text-center">
-        <div class="relative flex items-center justify-center mb-2.5 sm:mb-3">
-          <div class="absolute inset-0 rounded-full bg-neon-purple/25 animate-ripple"></div>
-          <div class="absolute -inset-1 rounded-full bg-neon-cyan/20 animate-pulse-glow"></div>
+        <div class="relative flex items-center justify-center mb-3 sm:mb-4">
+          <div class="absolute inset-0 rounded-full bg-neon-purple/15 animate-ripple"></div>
+          <div class="absolute -inset-1 rounded-full bg-neon-cyan/10 animate-pulse-glow"></div>
           <div
-            class="relative w-12 h-12 sm:w-16 sm:h-16 cyber-pill rounded-full shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+            class="relative w-14 h-14 sm:w-16 sm:h-16 neu-pill rounded-full shadow-neu-raised flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
           >
             <iconify-icon
               icon="ph:video-camera-bold"
@@ -238,7 +238,7 @@ function reset() {
             <span>Watermark position:</span>
             <select
               v-model="presetId"
-              class="text-xs font-semibold cyber-pill rounded-lg px-2 py-1 text-slate-200 focus:outline-none cursor-pointer"
+              class="text-xs font-semibold neu-pill rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none cursor-pointer min-h-[36px]"
             >
               <option v-for="p in VIDEO_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
             </select>
@@ -246,8 +246,8 @@ function reset() {
           <p class="text-[10px] sm:text-[11px] text-slate-500 max-w-xs leading-normal">{{ currentPreset.desc }}</p>
         </div>
 
-        <label class="mt-2.5 inline-flex items-center gap-2 text-xs font-semibold text-slate-400 cursor-pointer" @click.stop>
-          <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
+        <label class="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-400 cursor-pointer" @click.stop>
+          <input type="checkbox" v-model="advanced" class="w-4 h-4 rounded" />
           <span>Advanced: tune it yourself</span>
         </label>
       </div>
@@ -256,13 +256,13 @@ function reset() {
 
     <!-- Loading the preview frame -->
     <div v-else-if="status === 'loading'" class="flex flex-col items-center justify-center w-full h-56">
-      <div class="w-12 h-12 rounded-full border-3 border-neon-cyan/20 border-t-neon-cyan border-r-neon-pink animate-spin mb-3"></div>
+      <div class="w-12 h-12 rounded-full border-3 border-neon-cyan/20 border-t-neon-cyan animate-spin mb-3"></div>
       <p class="font-bold text-neon-cyan text-sm">Loading preview…</p>
     </div>
 
     <!-- Preview + manual controls -->
     <div v-else-if="status === 'preview'" class="animate-fade-in">
-      <div class="flex flex-col lg:flex-row gap-6">
+      <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div class="flex-1 min-w-0">
           <WatermarkTuner :settings="settings" :frame="frame" :bg-img="bgImg" :base="base" />
           <p class="text-xs text-slate-400 mt-3 leading-relaxed">
@@ -271,45 +271,58 @@ function reset() {
           </p>
         </div>
 
-        <div class="w-full lg:w-60 flex-shrink-0">
-          <div class="cyber-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
+        <!-- Desktop sidebar -->
+        <div class="hidden lg:block w-60 flex-shrink-0">
+          <div class="neu-card rounded-2xl p-4 sm:p-5 space-y-3 sticky top-24">
             <h2 class="font-bold text-white text-sm sm:text-base">Export</h2>
             <label class="block">
               <div class="text-xs font-bold text-slate-300 mb-1">Position preset</div>
               <select
                 v-model="presetId"
-                class="w-full text-xs font-semibold cyber-pill rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none cursor-pointer"
+                class="w-full text-xs font-semibold neu-pill rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none cursor-pointer"
               >
                 <option v-for="p in VIDEO_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
               </select>
               <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1">{{ currentPreset.desc }}</p>
             </label>
-            <button @click="resetSettings" class="w-full text-xs font-semibold text-slate-400 hover:text-neon-cyan transition-colors">
+            <button @click="resetSettings" class="w-full text-xs font-semibold text-slate-400 hover:text-neon-cyan transition-colors py-1">
               Reset sliders to preset
             </button>
-            <button @click="runExport" class="btn-neon group w-full py-3 rounded-xl font-bold text-white shadow-lg shadow-neon-pink/25 transition-all">
+            <button @click="runExport" class="btn-neon group w-full py-3 rounded-xl font-bold text-white transition-all">
               <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:sparkle-fill" width="18"></iconify-icon> Remove &amp; Export
               </div>
             </button>
-            <button
-              @click="reset"
-              class="btn-cyber-secondary btn-micro-pop"
-            >
+            <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
               <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
               <span>{{ t('processAnother') }}</span>
             </button>
           </div>
         </div>
       </div>
+
+      <!-- Mobile actions for preview -->
+      <div class="lg:hidden mt-4">
+        <div class="neu-card rounded-2xl p-4 space-y-3">
+          <button @click="runExport" class="btn-neon group w-full py-3.5 rounded-xl font-bold text-white transition-all">
+            <div class="flex items-center justify-center gap-2 text-sm">
+              <iconify-icon icon="ph:sparkle-fill" width="18"></iconify-icon> Remove &amp; Export
+            </div>
+          </button>
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
+            <span>{{ t('processAnother') }}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Processing -->
+    <!-- Processing (neumorphic inset progress bar) -->
     <div v-else-if="status === 'processing'" class="flex flex-col items-center justify-center w-full h-56 px-4 sm:px-8">
       <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-neon-pink/20 border-t-neon-pink border-r-neon-cyan animate-spin mb-4"></div>
       <p class="font-bold text-neon-pink mb-3 text-sm sm:text-base">Cleaning &amp; re-encoding…</p>
-      <div class="w-full max-w-md h-2.5 rounded-full bg-white/10 overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan transition-all duration-200" :style="{ width: `${Math.round(progress * 100)}%` }"></div>
+      <div class="w-full max-w-md h-3 rounded-full neu-inset overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan transition-all duration-200 rounded-full" :style="{ width: `${Math.round(progress * 100)}%` }"></div>
       </div>
       <p class="text-xs text-slate-500 mt-2 font-medium font-mono">{{ Math.round(progress * 100) }}% — please keep this tab open.</p>
     </div>
@@ -331,14 +344,14 @@ function reset() {
     <div v-else class="text-left mt-2 animate-fade-in">
       <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
-          <div class="cyber-card rounded-xl overflow-hidden">
-            <div class="px-3 py-2 border-b border-white/5 font-bold text-xs text-slate-200 bg-white/5">Original</div>
+          <div class="neu-card rounded-xl overflow-hidden">
+            <div class="px-3 py-2 border-b border-white/5 font-bold text-xs text-slate-200 bg-white/3">Original</div>
             <div class="p-2 sm:p-3 checker flex justify-center">
               <video :src="originalUrl" controls playsinline class="max-h-60 sm:max-h-72 w-full object-contain rounded"></video>
             </div>
           </div>
-          <div class="cyber-card rounded-xl overflow-hidden border-neon-cyan/30 ring-1 ring-neon-cyan/20">
-            <div class="bg-neon-cyan/10 px-3 py-2 border-b border-neon-cyan/20 flex items-center gap-1.5">
+          <div class="neu-card rounded-xl overflow-hidden" style="border-color: rgba(0, 240, 255, 0.15);">
+            <div class="bg-neon-cyan/5 px-3 py-2 border-b border-neon-cyan/10 flex items-center gap-1.5">
               <iconify-icon icon="ph:check-circle-fill" width="16" class="text-neon-cyan"></iconify-icon>
               <span class="font-bold text-neon-cyan text-xs">Cleaned</span>
             </div>
@@ -350,9 +363,9 @@ function reset() {
 
         <!-- Desktop sidebar -->
         <div class="hidden lg:block w-60 flex-shrink-0">
-          <div class="cyber-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-3">
+          <div class="neu-card rounded-2xl p-4 sm:p-5 sticky top-24 space-y-3">
             <h2 class="font-bold text-white text-sm sm:text-base">Actions</h2>
-            <button @click="download" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300">
+            <button @click="download" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all duration-300">
               <div class="flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download MP4
               </div>
@@ -361,10 +374,7 @@ function reset() {
               <iconify-icon icon="ph:sliders-horizontal-bold" width="18" class="text-neon-purple"></iconify-icon>
               <span>Adjust &amp; re-run</span>
             </button>
-            <button
-              @click="reset"
-              class="btn-cyber-secondary btn-micro-pop"
-            >
+            <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
               <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
               <span>{{ t('processAnother') }}</span>
             </button>
@@ -372,11 +382,11 @@ function reset() {
         </div>
       </div>
 
-      <!-- Mobile action buttons (always visible below videos) -->
+      <!-- Mobile action buttons -->
       <div class="lg:hidden mt-4">
-        <div class="cyber-card rounded-2xl p-4 space-y-3">
+        <div class="neu-card rounded-2xl p-4 space-y-3">
           <h2 class="font-bold text-white text-sm">Actions</h2>
-          <button @click="download" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-neon-cyan/25 transition-all duration-300">
+          <button @click="download" class="btn-neon-cyan group w-full py-3.5 rounded-xl font-bold text-white transition-all duration-300">
             <div class="flex items-center justify-center gap-2 text-sm">
               <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon> Download MP4
             </div>
@@ -385,10 +395,7 @@ function reset() {
             <iconify-icon icon="ph:sliders-horizontal-bold" width="18" class="text-neon-purple"></iconify-icon>
             <span>Adjust &amp; re-run</span>
           </button>
-          <button
-            @click="reset"
-            class="btn-cyber-secondary btn-micro-pop"
-          >
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop">
             <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="18" class="text-neon-cyan"></iconify-icon>
             <span>{{ t('processAnother') }}</span>
           </button>

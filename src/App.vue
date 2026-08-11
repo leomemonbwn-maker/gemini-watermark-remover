@@ -120,11 +120,11 @@ onMounted(() => {
   <!-- Particle Canvas Background -->
   <ParticleCanvas />
 
-  <!-- Ambient Neon Blobs -->
+  <!-- Soft Ambient Blobs (neumorphic) -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-    <div class="absolute -top-40 -left-40 w-[32rem] h-[32rem] bg-neon-pink/10 rounded-full blur-3xl animate-blob"></div>
-    <div class="absolute top-1/3 -right-40 w-[30rem] h-[30rem] bg-neon-cyan/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-    <div class="absolute -bottom-40 left-1/3 w-[28rem] h-[28rem] bg-neon-purple/8 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+    <div class="absolute -top-40 -left-40 w-[28rem] h-[28rem] bg-neon-pink/5 rounded-full blur-3xl animate-blob"></div>
+    <div class="absolute top-1/3 -right-40 w-[26rem] h-[26rem] bg-neon-cyan/5 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-40 left-1/3 w-[24rem] h-[24rem] bg-neon-purple/4 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
   </div>
 
   <div class="relative z-10 flex flex-col min-h-screen">
@@ -134,47 +134,35 @@ onMounted(() => {
     <main class="flex-grow w-full">
 
       <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 1: FULL-SCREEN CYBERPUNK HERO -->
+      <!-- SECTION 1: PREMIUM NEUMORPHIC HERO -->
       <!-- ═══════════════════════════════════════════════ -->
       <section class="relative flex items-center justify-center overflow-hidden" style="min-height: calc(100vh - 7rem);">
-        <!-- Grid overlay -->
-        <div class="absolute inset-0 circuit-grid opacity-30"></div>
-        
-        <!-- Scan line effect -->
-        <div class="absolute inset-0 overflow-hidden pointer-events-none">
-          <div class="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent animate-scan-line"></div>
-        </div>
-
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 text-center py-8 sm:py-12">
           <!-- Floating badge -->
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full cyber-pill text-xs font-bold shadow-neon-pink/20 border border-neon-pink/30 mb-4 sm:mb-5 reveal-on-scroll">
+          <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full neu-pill text-xs font-bold mb-5 sm:mb-6 reveal-on-scroll">
             <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-pink opacity-75"></span>
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-pink opacity-60"></span>
               <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-neon-pink"></span>
             </span>
             <span class="text-slate-200 tracking-tight">{{ t('heroBadge') }}</span>
-            <span class="w-px h-3 bg-white/20"></span>
+            <span class="w-px h-3 bg-white/10"></span>
             <span class="text-neon-cyan">{{ t('heroBadgeSub') }}</span>
           </div>
 
-          <!-- 3D Floating Logo -->
-          <div class="relative mx-auto mb-4 sm:mb-5 w-20 h-20 sm:w-28 sm:h-28 reveal-on-scroll">
-            <!-- Orbit ring -->
-            <div class="absolute inset-[-12px] sm:inset-[-16px] rounded-full border border-neon-pink/20 animate-spin" style="animation-duration: 8s;"></div>
-            <div class="absolute inset-[-6px] sm:inset-[-8px] rounded-full border border-dashed border-neon-cyan/15 animate-spin" style="animation-duration: 12s; animation-direction: reverse;"></div>
+          <!-- Neumorphic Logo -->
+          <div class="relative mx-auto mb-5 sm:mb-6 w-20 h-20 sm:w-28 sm:h-28 reveal-on-scroll">
+            <!-- Soft glow -->
+            <div class="absolute inset-[-16px] sm:inset-[-24px] rounded-full bg-neon-pink/6 blur-2xl animate-pulse" style="animation-duration: 4s;"></div>
             
-            <!-- Glow auras -->
-            <div class="absolute inset-[-20px] sm:inset-[-30px] rounded-full bg-neon-pink/10 blur-2xl animate-pulse" style="animation-duration: 3s;"></div>
-            <div class="absolute inset-[-15px] sm:inset-[-20px] rounded-full bg-neon-cyan/8 blur-xl animate-pulse" style="animation-duration: 4s; animation-delay: 1s;"></div>
-            
-            <!-- Logo container with 3D float -->
-            <div class="relative w-full h-full rounded-2xl sm:rounded-3xl bg-gradient-to-br from-neon-pink/20 via-neon-purple/15 to-neon-cyan/20 border border-white/10 flex items-center justify-center shadow-2xl shadow-neon-pink/20 backdrop-blur-sm hero-float-3d">
-              <img src="/assets/logo.svg" alt="GemClean AI" class="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-[0_0_15px_rgba(255,45,149,0.5)] select-none" />
+            <!-- Neumorphic logo container -->
+            <div class="relative w-full h-full rounded-2xl sm:rounded-3xl bg-neu-surface border border-white/5 flex items-center justify-center shadow-neu-raised hero-float-3d">
+              <img src="/assets/logo.svg" alt="GemClean AI" class="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-lg select-none" />
             </div>
           </div>
+
           <!-- Giant headline -->
           <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight leading-[1.05] reveal-on-scroll">
-            <span class="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.15)]">{{ t('heroTitle1') }}</span><br/>
+            <span class="text-white">{{ t('heroTitle1') }}</span><br/>
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan">{{ t('heroTitle2') }}</span>
           </h1>
 
@@ -182,27 +170,27 @@ onMounted(() => {
             {{ t('heroSubtitle') }}
           </p>
 
-          <!-- CTA Stats row -->
-          <div class="mt-5 sm:mt-6 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-sm font-bold reveal-on-scroll">
-            <div class="flex items-center gap-2 text-neon-cyan">
-              <iconify-icon icon="ph:shield-check-fill" width="20"></iconify-icon>
+          <!-- Feature pills row -->
+          <div class="mt-5 sm:mt-6 flex flex-wrap items-center justify-center gap-3 sm:gap-4 reveal-on-scroll">
+            <div class="flex items-center gap-2 px-4 py-2 rounded-xl neu-pill text-xs sm:text-sm font-bold text-neon-cyan">
+              <iconify-icon icon="ph:shield-check-fill" width="18"></iconify-icon>
               <span>{{ t('noServerUpload') }}</span>
             </div>
-            <div class="flex items-center gap-2 text-neon-pink">
-              <iconify-icon icon="ph:image-fill" width="20"></iconify-icon>
+            <div class="flex items-center gap-2 px-4 py-2 rounded-xl neu-pill text-xs sm:text-sm font-bold text-neon-pink">
+              <iconify-icon icon="ph:image-fill" width="18"></iconify-icon>
               <span>{{ t('imageFormats') }}</span>
             </div>
-            <div class="flex items-center gap-2 text-neon-purple">
-              <iconify-icon icon="ph:video-fill" width="20"></iconify-icon>
+            <div class="flex items-center gap-2 px-4 py-2 rounded-xl neu-pill text-xs sm:text-sm font-bold text-neon-purple">
+              <iconify-icon icon="ph:video-fill" width="18"></iconify-icon>
               <span>{{ t('videoFormats') }}</span>
             </div>
           </div>
 
           <!-- CTA Button -->
-          <div class="mt-6 sm:mt-8 reveal-on-scroll">
+          <div class="mt-7 sm:mt-8 reveal-on-scroll">
             <button
               @click="scrollToTool"
-              class="btn-neon text-sm sm:text-base px-8 py-3.5 rounded-2xl inline-flex items-center gap-2"
+              class="btn-neon text-sm sm:text-base px-8 py-4 rounded-2xl inline-flex items-center gap-2"
             >
               <iconify-icon icon="ph:lightning-fill" width="20"></iconify-icon>
               Start Removing Watermarks
@@ -210,10 +198,9 @@ onMounted(() => {
           </div>
 
           <!-- Scroll indicator -->
-          <div class="mt-6 sm:mt-8 animate-bounce-down reveal-on-scroll">
+          <div class="mt-7 sm:mt-8 animate-bounce-down reveal-on-scroll">
             <button @click="scrollToTool" class="text-slate-500 hover:text-neon-cyan transition-colors flex flex-col items-center gap-1">
               <span class="text-xs font-mono font-medium">{{ t('scrollDown') }}</span>
-
               <iconify-icon icon="ph:caret-double-down" width="20"></iconify-icon>
             </button>
           </div>
@@ -225,17 +212,17 @@ onMounted(() => {
       <!-- ═══════════════════════════════════════════════ -->
       <section id="tool-section" class="relative pb-12 sm:pb-16">
         <div class="max-w-4xl mx-auto px-3 sm:px-6">
-          <div class="cyber-card cyber-card-neon rounded-3xl p-4 sm:p-6 shadow-2xl reveal-on-scroll">
+          <div class="neu-card cyber-card-neon rounded-3xl p-4 sm:p-6 shadow-neu-raised-lg reveal-on-scroll">
             
             <!-- Tab bar inside card -->
             <div class="flex justify-center mb-4 sm:mb-5">
-              <div class="p-1 rounded-2xl bg-white/5 inline-flex gap-1">
+              <div class="p-1.5 rounded-2xl neu-inset inline-flex gap-1.5">
                 <button
                   @click="tab = 'image'"
                   :class="[
-                    'flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200',
+                    'flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 min-h-[40px]',
                     tab === 'image'
-                      ? 'bg-white/10 text-neon-pink shadow-sm shadow-neon-pink/20'
+                      ? 'bg-neu-raised text-neon-pink shadow-neu-raised-sm'
                       : 'text-slate-400 hover:text-white',
                   ]"
                 >
@@ -245,9 +232,9 @@ onMounted(() => {
                 <button
                   @click="tab = 'video'"
                   :class="[
-                    'flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200',
+                    'flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 min-h-[40px]',
                     tab === 'video'
-                      ? 'bg-white/10 text-neon-cyan shadow-sm shadow-neon-cyan/20'
+                      ? 'bg-neu-raised text-neon-cyan shadow-neu-raised-sm'
                       : 'text-slate-400 hover:text-white',
                   ]"
                 >
@@ -285,7 +272,7 @@ onMounted(() => {
           </div>
 
           <div class="max-w-3xl mx-auto">
-            <div class="cyber-card rounded-3xl p-2 sm:p-3 shadow-xl border-neon-cyan/10">
+            <div class="neu-card rounded-3xl p-2 sm:p-3 shadow-neu-raised-lg">
               <BeforeAfter />
             </div>
           </div>
@@ -308,7 +295,7 @@ onMounted(() => {
           <!-- Pipeline flowchart -->
           <div class="relative max-w-3xl mx-auto">
             <!-- Vertical connector line -->
-            <div class="absolute left-6 sm:left-8 top-6 bottom-6 w-px bg-gradient-to-b from-neon-pink/40 via-neon-cyan/40 to-neon-purple/40 hidden sm:block"></div>
+            <div class="absolute left-6 sm:left-8 top-6 bottom-6 w-px bg-gradient-to-b from-neon-pink/20 via-neon-cyan/20 to-neon-purple/20 hidden sm:block"></div>
 
             <div class="space-y-4 sm:space-y-5">
               <div
@@ -317,19 +304,19 @@ onMounted(() => {
                 class="relative flex items-start gap-4 sm:gap-5 group reveal-on-scroll"
                 :style="{ transitionDelay: (idx * 80) + 'ms' }"
               >
-                <!-- Step number circle -->
+                <!-- Step number circle (neumorphic) -->
                 <div :class="[
-                  'relative z-10 flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110',
-                  step.color === 'pink' ? 'bg-gradient-to-br from-neon-pink to-neon-pink/70 shadow-neon-pink/30' : '',
-                  step.color === 'cyan' ? 'bg-gradient-to-br from-neon-cyan to-neon-blue shadow-neon-cyan/30' : '',
-                  step.color === 'purple' ? 'bg-gradient-to-br from-neon-purple to-neon-purple/70 shadow-neon-purple/30' : '',
-                  step.color === 'green' ? 'bg-gradient-to-br from-neon-green to-neon-green/70 shadow-neon-green/30' : '',
+                  'relative z-10 flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shadow-neu-raised transition-transform group-hover:scale-105',
+                  step.color === 'pink' ? 'bg-gradient-to-br from-neon-pink/30 to-neon-pink/10' : '',
+                  step.color === 'cyan' ? 'bg-gradient-to-br from-neon-cyan/30 to-neon-blue/10' : '',
+                  step.color === 'purple' ? 'bg-gradient-to-br from-neon-purple/30 to-neon-purple/10' : '',
+                  step.color === 'green' ? 'bg-gradient-to-br from-neon-green/30 to-neon-green/10' : '',
                 ]">
                   <iconify-icon :icon="step.icon" width="24" class="text-white sm:w-7 sm:h-7"></iconify-icon>
                 </div>
 
-                <!-- Step content card -->
-                <div class="flex-1 cyber-card rounded-2xl p-4 sm:p-5 group-hover:border-neon-cyan/20 transition-colors">
+                <!-- Step content card (neumorphic) -->
+                <div class="flex-1 neu-card rounded-2xl p-4 sm:p-5 group-hover:shadow-neu-raised-lg transition-shadow">
                   <div class="flex items-center gap-2 mb-1">
                     <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 font-mono">{{ t('step') }} {{ idx + 1 }}</span>
                   </div>
@@ -340,9 +327,9 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Formula callout -->
+          <!-- Formula callout (neumorphic inset) -->
           <div class="max-w-3xl mx-auto mt-8 sm:mt-10 reveal-on-scroll">
-            <div class="cyber-card rounded-2xl p-5 sm:p-6 text-center border-neon-purple/20">
+            <div class="neu-card rounded-2xl p-5 sm:p-6 text-center">
               <p class="text-xs font-bold uppercase tracking-widest text-neon-purple mb-3 font-mono">{{ t('coreFormula') }}</p>
               <p class="text-lg sm:text-2xl font-mono font-bold text-white tracking-tight">
                 P<sub class="text-neon-green">original</sub> = ( P<sub class="text-slate-400">watermarked</sub> − α · L ) ÷ ( 1 − α )
@@ -356,7 +343,7 @@ onMounted(() => {
       </section>
 
       <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 5: STATS BENTO GRID (Animated) -->
+      <!-- SECTION 5: STATS (Neumorphic cards) -->
       <!-- ═══════════════════════════════════════════════ -->
       <section class="py-14 sm:py-20 reveal-on-scroll">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
@@ -364,7 +351,7 @@ onMounted(() => {
             <div
               v-for="(stat, idx) in stats"
               :key="idx"
-              class="cyber-card rounded-2xl p-5 sm:p-6 text-center group hover:shadow-neon-cyan transition-shadow duration-500"
+              class="neu-card rounded-2xl p-5 sm:p-6 text-center group hover:shadow-neu-raised-lg transition-shadow duration-500"
             >
               <div :class="['text-2xl sm:text-3xl font-black counter-animate', stat.color]" :style="{ animationDelay: (idx * 150) + 'ms' }">
                 {{ stat.value }}
@@ -381,7 +368,7 @@ onMounted(() => {
       <ProcessingHistory />
 
       <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 7: FAQ -->
+      <!-- SECTION 7: FAQ (Neumorphic accordion) -->
       <!-- ═══════════════════════════════════════════════ -->
       <section class="py-14 sm:py-20 reveal-on-scroll">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
@@ -396,11 +383,11 @@ onMounted(() => {
             <div
               v-for="(faq, idx) in faqs"
               :key="idx"
-              class="cyber-card rounded-2xl overflow-hidden transition-all duration-300"
+              class="neu-card rounded-2xl overflow-hidden transition-all duration-300"
             >
               <button
                 @click="toggleFaq(idx)"
-                class="w-full p-4 sm:p-5 flex items-center justify-between font-bold text-sm text-white hover:text-neon-pink transition-colors text-left"
+                class="w-full p-4 sm:p-5 flex items-center justify-between font-bold text-sm text-white hover:text-neon-pink transition-colors text-left min-h-[52px]"
               >
                 <span class="pr-3">{{ faq.q }}</span>
                 <iconify-icon
@@ -428,47 +415,47 @@ onMounted(() => {
     <!-- Keyboard Shortcuts Floating Button -->
     <button
       @click="showShortcuts = true"
-      class="fixed bottom-4 left-4 z-40 cyber-pill px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-neon-cyan shadow-lg flex items-center gap-1.5 transition-all border border-white/5"
+      class="fixed bottom-4 left-4 z-40 neu-pill px-3 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-neon-cyan shadow-neu-raised-sm flex items-center gap-1.5 transition-all min-h-[40px]"
       title="Keyboard Shortcuts (? or Ctrl+K)"
     >
       <iconify-icon icon="ph:keyboard-bold" width="16"></iconify-icon>
       <span class="hidden sm:inline">{{ t('shortcuts') }}</span>
-      <kbd class="px-1 py-0.5 text-[9px] font-mono bg-white/10 rounded">?</kbd>
+      <kbd class="px-1.5 py-0.5 text-[9px] font-mono bg-white/5 rounded">?</kbd>
     </button>
 
-    <!-- Keyboard Shortcuts Modal -->
+    <!-- Keyboard Shortcuts Modal (Neumorphic) -->
     <div
       v-if="showShortcuts"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-fade-in"
       @click.self="showShortcuts = false"
     >
-      <div class="cyber-card rounded-3xl p-6 max-w-md w-full shadow-2xl border border-neon-cyan/20">
-        <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+      <div class="neu-card rounded-3xl p-6 max-w-md w-full shadow-neu-raised-lg">
+        <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
           <h3 class="font-bold text-white text-base flex items-center gap-2">
             <iconify-icon icon="ph:keyboard-bold" class="text-neon-cyan"></iconify-icon>
             {{ t('keyboardShortcuts') }}
           </h3>
-          <button @click="showShortcuts = false" class="text-slate-400 hover:text-white">
+          <button @click="showShortcuts = false" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 min-w-[36px] min-h-[36px] flex items-center justify-center">
             <iconify-icon icon="ph:x-bold" width="18"></iconify-icon>
           </button>
         </div>
 
         <div class="space-y-2.5 text-xs font-medium">
-          <div class="flex justify-between items-center p-2 rounded-xl bg-white/5">
+          <div class="flex justify-between items-center p-3 rounded-xl neu-inset">
             <span>{{ t('pasteImage') }}</span>
-            <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/20 text-neon-pink rounded border border-neon-pink/30">Ctrl + V</kbd>
+            <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">Ctrl + V</kbd>
           </div>
-          <div class="flex justify-between items-center p-2 rounded-xl bg-white/5">
+          <div class="flex justify-between items-center p-3 rounded-xl neu-inset">
             <span>{{ t('toggleShortcuts') }}</span>
             <div class="flex gap-1">
-              <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/20 text-neon-pink rounded border border-neon-pink/30">?</kbd>
-              <span class="text-slate-400">or</span>
-              <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/20 text-neon-pink rounded border border-neon-pink/30">Ctrl + K</kbd>
+              <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">?</kbd>
+              <span class="text-slate-400 self-center">or</span>
+              <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">Ctrl + K</kbd>
             </div>
           </div>
-          <div class="flex justify-between items-center p-2 rounded-xl bg-white/5">
+          <div class="flex justify-between items-center p-3 rounded-xl neu-inset">
             <span>{{ t('closeModal') }}</span>
-            <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/20 text-neon-pink rounded border border-neon-pink/30">Esc</kbd>
+            <kbd class="px-2 py-1 font-mono font-bold bg-neon-pink/15 text-neon-pink rounded-lg">Esc</kbd>
           </div>
         </div>
       </div>

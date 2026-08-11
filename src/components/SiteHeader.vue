@@ -56,14 +56,14 @@ function selectLang(lang) {
 
 <template>
   <header
-    class="sticky top-0 z-50 cyber-glass-header transition-all duration-300"
+    class="sticky top-0 z-50 neu-header transition-all duration-300"
   >
     <div class="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
       
       <!-- Brand Logo & Title -->
       <a href="/" class="flex items-center gap-2.5 overflow-hidden no-underline group select-none">
-        <div class="relative w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-neon-pink/30 via-neon-purple/30 to-neon-cyan/30 p-1 border border-neon-pink/30 shadow-neon-pink/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-          <img src="/assets/logo.svg" :alt="brandConfig.name + ' Logo'" width="36" height="36" class="w-7 h-7 sm:w-9 sm:h-9 select-none filter drop-shadow-md" />
+        <div class="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-2xl bg-neu-raised p-1 border border-white/5 shadow-neu-raised-sm group-hover:scale-105 transition-all duration-300">
+          <img src="/assets/logo.svg" :alt="brandConfig.name + ' Logo'" width="36" height="36" class="w-7 h-7 sm:w-8 sm:h-8 select-none filter drop-shadow-md" />
         </div>
         <div class="flex flex-col">
           <p class="text-base sm:text-lg md:text-xl font-extrabold text-white whitespace-nowrap tracking-tight leading-tight m-0">
@@ -78,7 +78,7 @@ function selectLang(lang) {
         <div class="relative">
           <button
             @click="showLangPicker = !showLangPicker"
-            class="cyber-pill px-2.5 py-1.5 rounded-xl text-slate-300 hover:text-neon-cyan transition-all font-bold text-xs flex items-center gap-1.5 border border-white/5"
+            class="neu-pill px-3 py-2 rounded-xl text-slate-300 hover:text-neon-cyan transition-all font-bold text-xs flex items-center gap-1.5 min-h-[40px]"
           >
             <span>{{ availableLanguages.find(l => l.code === currentLang)?.flag }}</span>
             <iconify-icon icon="ph:caret-down" width="12" :class="showLangPicker ? 'rotate-180' : ''" class="transition-transform"></iconify-icon>
@@ -86,14 +86,14 @@ function selectLang(lang) {
           
           <div
             v-if="showLangPicker"
-            class="absolute right-0 top-full mt-1 cyber-card rounded-xl py-1 w-36 shadow-xl border border-white/10 z-50 animate-fade-in"
+            class="absolute right-0 top-full mt-1 neu-card rounded-xl py-1 w-36 shadow-neu-raised-lg z-50 animate-fade-in"
           >
             <button
               v-for="lang in availableLanguages"
               :key="lang.code"
               @click="selectLang(lang.code)"
               :class="[
-                'w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 transition-colors',
+                'w-full px-3 py-2.5 text-left text-xs font-semibold flex items-center gap-2 transition-colors min-h-[40px]',
                 currentLang === lang.code ? 'text-neon-pink bg-neon-pink/10' : 'text-slate-300 hover:text-white hover:bg-white/5'
               ]"
             >
@@ -108,7 +108,7 @@ function selectLang(lang) {
         <button
           v-if="deferredPrompt"
           @click="installPwa"
-          class="cyber-pill px-3 py-1.5 rounded-xl text-neon-cyan hover:bg-neon-cyan/10 transition-all font-bold text-xs flex items-center gap-1.5 border border-neon-cyan/30"
+          class="neu-pill px-3 py-2 rounded-xl text-neon-cyan hover:bg-neon-cyan/10 transition-all font-bold text-xs flex items-center gap-1.5 min-h-[40px]"
         >
           <iconify-icon icon="ph:device-mobile-speaker-bold" width="16"></iconify-icon>
           <span>{{ t('installApp') }}</span>
@@ -116,7 +116,7 @@ function selectLang(lang) {
 
         <button
           @click="toggleTheme"
-          class="cyber-pill p-2 rounded-xl text-slate-300 hover:text-neon-pink transition-all focus:outline-none"
+          class="neu-pill p-2.5 rounded-xl text-slate-300 hover:text-neon-pink transition-all focus:outline-none min-w-[40px] min-h-[40px] flex items-center justify-center"
           aria-label="Toggle Dark Mode"
         >
           <iconify-icon v-if="isDark" icon="ph:sun-bold" width="20"></iconify-icon>
@@ -125,13 +125,13 @@ function selectLang(lang) {
 
         <nav
           aria-label="Site navigation"
-          class="border-l border-white/10 pl-2 flex items-center gap-1.5"
+          class="border-l border-white/5 pl-2 flex items-center gap-1.5"
         >
           <a
             :href="brandConfig.githubRepo"
             target="_blank"
             rel="noopener noreferrer"
-            class="cyber-pill px-3 py-1.5 rounded-xl text-slate-300 hover:text-neon-cyan transition-all flex items-center gap-1.5 font-semibold text-xs no-underline border border-white/5"
+            class="neu-pill px-3 py-2 rounded-xl text-slate-300 hover:text-neon-cyan transition-all flex items-center gap-1.5 font-semibold text-xs no-underline min-h-[40px]"
             aria-label="View source on GitHub"
           >
             <iconify-icon icon="mdi:github" width="18"></iconify-icon>
@@ -139,7 +139,7 @@ function selectLang(lang) {
           </a>
           <a
             href="/about.html"
-            class="cyber-pill px-3 py-1.5 rounded-xl text-slate-300 hover:text-neon-pink transition-all flex items-center gap-1.5 font-semibold text-xs no-underline border border-white/5"
+            class="neu-pill px-3 py-2 rounded-xl text-slate-300 hover:text-neon-pink transition-all flex items-center gap-1.5 font-semibold text-xs no-underline min-h-[40px]"
           >
             <span>{{ t('about') }}</span>
           </a>
@@ -147,11 +147,11 @@ function selectLang(lang) {
       </div>
 
       <!-- Mobile Right Controls -->
-      <div class="flex md:hidden items-center gap-1.5">
+      <div class="flex md:hidden items-center gap-2">
         <!-- Mobile Language -->
         <button
           @click="showLangPicker = !showLangPicker"
-          class="cyber-pill p-2 rounded-xl text-slate-200 focus:outline-none"
+          class="neu-pill p-2.5 rounded-xl text-slate-200 focus:outline-none min-w-[42px] min-h-[42px] flex items-center justify-center"
           aria-label="Switch language"
         >
           <span class="text-sm">{{ availableLanguages.find(l => l.code === currentLang)?.flag }}</span>
@@ -159,7 +159,7 @@ function selectLang(lang) {
 
         <button
           @click="toggleTheme"
-          class="cyber-pill p-2 rounded-xl text-slate-200 focus:outline-none"
+          class="neu-pill p-2.5 rounded-xl text-slate-200 focus:outline-none min-w-[42px] min-h-[42px] flex items-center justify-center"
           aria-label="Toggle Dark Mode"
         >
           <iconify-icon v-if="isDark" icon="ph:sun-bold" width="18"></iconify-icon>
@@ -168,7 +168,7 @@ function selectLang(lang) {
 
         <button
           @click="toggleMenu"
-          class="cyber-pill p-2 rounded-xl text-slate-200 focus:outline-none active:scale-95 transition-transform"
+          class="neu-pill p-2.5 rounded-xl text-slate-200 focus:outline-none active:scale-95 transition-transform min-w-[42px] min-h-[42px] flex items-center justify-center"
           aria-label="Toggle Menu"
         >
           <iconify-icon v-if="isMenuOpen" icon="ph:x-bold" width="20"></iconify-icon>
@@ -177,19 +177,19 @@ function selectLang(lang) {
       </div>
     </div>
 
-    <!-- Mobile Lang Picker Dropdown (shared desktop/mobile) -->
+    <!-- Mobile Lang Picker Dropdown -->
     <div
       v-if="showLangPicker"
       class="md:hidden px-3 pb-2 animate-fade-in"
     >
-      <div class="cyber-card rounded-xl p-2 flex gap-2">
+      <div class="neu-card rounded-xl p-2 flex gap-2">
         <button
           v-for="lang in availableLanguages"
           :key="lang.code"
           @click="selectLang(lang.code)"
           :class="[
-            'flex-1 px-3 py-2 rounded-lg text-xs font-bold text-center transition-all',
-            currentLang === lang.code ? 'bg-neon-pink/20 text-neon-pink border border-neon-pink/30' : 'text-slate-300 hover:bg-white/5 border border-transparent'
+            'flex-1 px-3 py-2.5 rounded-lg text-xs font-bold text-center transition-all min-h-[42px]',
+            currentLang === lang.code ? 'bg-neon-pink/15 text-neon-pink shadow-neu-raised-sm' : 'text-slate-300 hover:bg-white/5'
           ]"
         >
           {{ lang.flag }} {{ lang.label }}
@@ -197,7 +197,7 @@ function selectLang(lang) {
       </div>
     </div>
 
-    <!-- Mobile Menu Dropdown -->
+    <!-- Mobile Menu Dropdown (Neumorphic) -->
     <transition
       enter-active-class="transition duration-200 ease-out"
       enter-from-class="opacity-0 -translate-y-3 scale-98"
@@ -208,11 +208,11 @@ function selectLang(lang) {
     >
       <div
         v-if="isMenuOpen"
-        class="md:hidden mobile-glass-drawer border-b border-white/5 px-4 py-4 flex flex-col gap-2.5 shadow-2xl absolute w-full left-0"
+        class="md:hidden mobile-glass-drawer border-b border-white/5 px-4 py-4 flex flex-col gap-2.5 shadow-neu-raised absolute w-full left-0"
       >
         <button
           @click="toggleTheme"
-          class="cyber-pill flex items-center justify-between p-3 rounded-xl text-slate-100 font-semibold text-sm w-full text-left border border-white/5"
+          class="neu-pill flex items-center justify-between p-3.5 rounded-xl text-slate-100 font-semibold text-sm w-full text-left min-h-[48px]"
         >
           <span class="flex items-center gap-2.5">
             <iconify-icon v-if="isDark" icon="ph:sun-bold" width="20" class="text-neon-orange"></iconify-icon>
@@ -227,7 +227,7 @@ function selectLang(lang) {
           target="_blank"
           rel="noopener noreferrer"
           @click="closeMenu"
-          class="cyber-pill flex items-center gap-2.5 p-3 rounded-xl text-slate-100 font-semibold text-sm no-underline border border-white/5"
+          class="neu-pill flex items-center gap-2.5 p-3.5 rounded-xl text-slate-100 font-semibold text-sm no-underline min-h-[48px]"
         >
           <iconify-icon icon="mdi:github" width="20" class="text-slate-300"></iconify-icon>
           <span>GitHub Repository</span>
@@ -236,7 +236,7 @@ function selectLang(lang) {
         <a
           href="/about.html"
           @click="closeMenu"
-          class="cyber-pill flex items-center gap-2.5 p-3 rounded-xl text-slate-100 font-semibold text-sm no-underline border border-white/5"
+          class="neu-pill flex items-center gap-2.5 p-3.5 rounded-xl text-slate-100 font-semibold text-sm no-underline min-h-[48px]"
         >
           <iconify-icon icon="ph:info-bold" width="20" class="text-neon-cyan"></iconify-icon>
           <span>{{ t('about') }} GemClean AI</span>
