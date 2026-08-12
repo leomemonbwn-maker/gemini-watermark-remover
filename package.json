@@ -9,6 +9,8 @@
     "watch:css": "tailwindcss -i ./src/style.css -o ./public/css/output.css --watch",
     "build": "npm run build:css && vite build",
     "build:ext": "npm run build:css && vite build && node scripts/build-ext.js",
+    "android:sync": "npm run build && npx cap copy android && npx cap sync android",
+    "android:open": "npx cap open android",
     "preview": "vite preview"
   },
   "repository": {
@@ -32,6 +34,9 @@
   },
   "homepage": "https://gemini-watermark-remover-taupe.vercel.app",
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@google/generative-ai": "^0.24.1",
     "mediabunny": "^1.49.0",
     "vue": "^3.5.13"

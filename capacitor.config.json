@@ -1,0 +1,14 @@
+{
+  "appId": "ai.gemclean.app",
+  "appName": "GemClean AI",
+  "webDir": "dist",
+  "backgroundColor": "#0d0f18",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0d0f18",
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

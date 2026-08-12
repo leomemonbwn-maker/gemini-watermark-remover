@@ -10,6 +10,7 @@ const isMenuOpen = ref(false);
 const deferredPrompt = ref(null);
 const showLangPicker = ref(false);
 const showExtensionModal = ref(false);
+const showApkModal = ref(false);
 
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark');
@@ -85,6 +86,19 @@ function selectLang(lang) {
           <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-cyan opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-neon-cyan"></span>
+          </span>
+        </button>
+
+        <!-- Android APK Icon Button -->
+        <button
+          @click="showApkModal = true"
+          class="neu-pill p-2 rounded-lg text-slate-300 hover:text-neon-green transition-all min-w-[34px] min-h-[34px] flex items-center justify-center relative group"
+          title="Download Android App"
+        >
+          <iconify-icon icon="logos:android-icon" width="18"></iconify-icon>
+          <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-green opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-neon-green"></span>
           </span>
         </button>
 
@@ -168,6 +182,14 @@ function selectLang(lang) {
           class="neu-pill px-2 py-1.5 rounded-lg text-slate-200 font-bold text-xs flex items-center gap-1 min-h-[36px]"
         >
           <iconify-icon icon="logos:chrome" width="15"></iconify-icon>
+        </button>
+
+        <!-- Android APK Button (Mobile) -->
+        <button
+          @click="showApkModal = true"
+          class="neu-pill px-2 py-1.5 rounded-lg text-slate-200 font-bold text-xs flex items-center gap-1 min-h-[36px]"
+        >
+          <iconify-icon icon="logos:android-icon" width="15"></iconify-icon>
         </button>
 
         <!-- Mobile Language -->
@@ -336,6 +358,70 @@ function selectLang(lang) {
           <div>
             <h4 class="font-bold text-white">{{ t('extensionStep3Title') }}</h4>
             <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">{{ t('extensionStep3Desc') }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Android APK Download Modal ── -->
+  <div
+    v-if="showApkModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+    @click.self="showApkModal = false"
+  >
+    <div class="neu-card cyber-card-neon rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl relative">
+      <button
+        @click="showApkModal = false"
+        class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+      >
+        <iconify-icon icon="ph:x-bold" width="18"></iconify-icon>
+      </button>
+
+      <div class="text-center mb-5">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-neu-raised flex items-center justify-center border border-white/10 shadow-inner mb-3">
+          <iconify-icon icon="logos:android-icon" width="28"></iconify-icon>
+        </div>
+        <h3 class="text-lg font-extrabold text-white">
+          {{ t('apkModalTitle') }}
+        </h3>
+        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+          {{ t('apkModalSubtitle') }}
+        </p>
+      </div>
+
+      <a
+        href="/GemCleanAI.apk"
+        download="GemCleanAI.apk"
+        class="btn-neon w-full flex items-center justify-center gap-2 font-bold text-sm py-2.5 rounded-xl shadow-lg no-underline text-white mb-5"
+        style="background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);"
+      >
+        <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon>
+        <span>{{ t('downloadApk') }}</span>
+      </a>
+
+      <div class="space-y-2.5 text-xs">
+        <div class="neu-inset p-3 rounded-xl flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-neon-green/20 text-neon-green flex items-center justify-center font-bold text-[11px] flex-shrink-0 mt-0.5">1</span>
+          <div>
+            <h4 class="font-bold text-white">{{ t('apkStep1Title') }}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">{{ t('apkStep1Desc') }}</p>
+          </div>
+        </div>
+
+        <div class="neu-inset p-3 rounded-xl flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-neon-cyan/20 text-neon-cyan flex items-center justify-center font-bold text-[11px] flex-shrink-0 mt-0.5">2</span>
+          <div>
+            <h4 class="font-bold text-white">{{ t('apkStep2Title') }}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">{{ t('apkStep2Desc') }}</p>
+          </div>
+        </div>
+
+        <div class="neu-inset p-3 rounded-xl flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-neon-purple/20 text-neon-purple flex items-center justify-center font-bold text-[11px] flex-shrink-0 mt-0.5">3</span>
+          <div>
+            <h4 class="font-bold text-white">{{ t('apkStep3Title') }}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">{{ t('apkStep3Desc') }}</p>
           </div>
         </div>
       </div>

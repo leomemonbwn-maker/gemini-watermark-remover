@@ -158,6 +158,17 @@ const translations = {
     extensionStep3Title: '3. Load Unpacked',
     extensionStep3Desc: 'Click "Load Unpacked" and select the unzipped folder. Done!',
 
+    // APK Modal
+    apkModalTitle: 'GemClean AI for Android',
+    apkModalSubtitle: 'Super-smooth native app for removing Gemini watermarks on your phone!',
+    downloadApk: 'Download APK',
+    apkStep1Title: '1. Download APK',
+    apkStep1Desc: 'Click the button above to download GemCleanAI.apk',
+    apkStep2Title: '2. Allow Install',
+    apkStep2Desc: 'If prompted, enable "Install from unknown sources" in Settings',
+    apkStep3Title: '3. Open & Enjoy',
+    apkStep3Desc: 'Open the app and start cleaning watermarks instantly!',
+
     // Quality
     qualityScore: 'Quality Score',
   },
@@ -304,6 +315,17 @@ const translations = {
     donateUpi: 'UPI से डोनेट करें',
     maybeLater: 'बाद में',
     
+    // APK Modal
+    apkModalTitle: 'Android के लिए GemClean AI',
+    apkModalSubtitle: 'फोन पर Gemini वॉटरमार्क हटाने के लिए सुपर-स्मूथ नेटिव ऐप!',
+    downloadApk: 'APK डाउनलोड करें',
+    apkStep1Title: '1. APK डाउनलोड करें',
+    apkStep1Desc: 'ऊपर दिए गए बटन पर क्लिक करके GemCleanAI.apk डाउनलोड करें',
+    apkStep2Title: '2. इंस्टॉल की अनुमति दें',
+    apkStep2Desc: 'अगर पूछा जाए तो Settings में "Install from unknown sources" चालू करें',
+    apkStep3Title: '3. खोलें और आनंद लें',
+    apkStep3Desc: 'ऐप खोलें और तुरंत वॉटरमार्क साफ करना शुरू करें!',
+
     // Quality
     qualityScore: 'क्वालिटी स्कोर',
   }
