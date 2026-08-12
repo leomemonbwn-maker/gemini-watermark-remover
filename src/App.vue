@@ -91,6 +91,10 @@ function scrollToTool() {
 }
 
 onMounted(() => {
+  if (window.location.protocol.includes('extension') || window.location.search.includes('popup')) {
+    document.documentElement.classList.add('in-extension-popup');
+    document.body.classList.add('in-extension-popup');
+  }
   window.addEventListener('keydown', handleKeyDown);
   const initObserver = () => {
     const observer = new IntersectionObserver(

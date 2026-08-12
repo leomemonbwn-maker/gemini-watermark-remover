@@ -507,3 +507,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
   z-index: 0 !important;
   pointer-events: none !important;
 }
+
+/* ── Chrome Extension Popup Mode (Option B) ── */
+html.in-extension-popup,
+body.in-extension-popup {
+  width: 620px !important;
+  max-width: 100vw !important;
+  min-height: 540px !important;
+  max-height: 600px !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+}
+

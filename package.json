@@ -8,6 +8,7 @@
     "build:css": "tailwindcss -i ./src/style.css -o ./public/css/output.css --minify",
     "watch:css": "tailwindcss -i ./src/style.css -o ./public/css/output.css --watch",
     "build": "npm run build:css && vite build",
+    "build:ext": "npm run build:css && vite build && node scripts/build-ext.js",
     "preview": "vite preview"
   },
   "repository": {

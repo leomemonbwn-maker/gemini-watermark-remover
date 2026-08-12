@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "GemClean AI — Lossless Gemini & Veo Watermark Remover",
+  "short_name": "GemClean AI",
+  "version": "1.0.0",
+  "description": "100% In-Browser Lossless Watermark Remover for Google Gemini Photos & Veo Videos",
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "assets/mascot-logo.png",
+      "48": "assets/mascot-logo.png",
+      "128": "assets/mascot-logo.png"
+    }
+  },
+  "icons": {
+    "16": "assets/mascot-logo.png",
+    "48": "assets/mascot-logo.png",
+    "128": "assets/mascot-logo.png"
+  },
+  "permissions": []
+}
