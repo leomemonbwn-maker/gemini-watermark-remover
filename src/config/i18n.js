@@ -49,7 +49,10 @@ const translations = {
     askAi: 'Ask AI',
     format: 'Format',
     share: 'Share',
-    
+    aiRefine: 'AI Refine',
+    refining: 'Refining...',
+    refinementDone: 'Refinement Done',
+
     // Confidence
     watermarkDetected: 'Watermark detected',
     confidence: 'Confidence',
@@ -218,7 +221,10 @@ const translations = {
     askAi: 'AI से पूछें',
     format: 'फॉर्मैट',
     share: 'शेयर',
-    
+    aiRefine: 'AI रिफाइन',
+    refining: 'साफ हो रहा है...',
+    refinementDone: 'सफाई पूरी हुई',
+
     // Confidence
     watermarkDetected: 'वॉटरमार्क मिला',
     confidence: 'विश्वसनीयता',
