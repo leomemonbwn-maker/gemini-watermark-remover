@@ -146,6 +146,18 @@ const translations = {
     donateUpi: 'Donate via UPI',
     maybeLater: 'Maybe Later',
     
+    // Extension Modal
+    addExtension: 'Add Chrome Extension',
+    extensionModalTitle: 'Get GemClean AI for Chrome',
+    extensionModalSubtitle: 'Clean Gemini photos & videos directly from your browser toolbar with 1-click!',
+    downloadExtensionZip: 'Download Extension (.zip)',
+    extensionStep1Title: '1. Download & Unzip',
+    extensionStep1Desc: 'Click the button above to download GemCleanAI-Extension.zip',
+    extensionStep2Title: '2. Open chrome://extensions',
+    extensionStep2Desc: 'Turn ON Developer Mode in top-right corner of Chrome',
+    extensionStep3Title: '3. Load Unpacked',
+    extensionStep3Desc: 'Click "Load Unpacked" and select the unzipped folder. Done!',
+
     // Quality
     qualityScore: 'Quality Score',
   },

@@ -9,6 +9,7 @@ const isDark = ref(false);
 const isMenuOpen = ref(false);
 const deferredPrompt = ref(null);
 const showLangPicker = ref(false);
+const showExtensionModal = ref(false);
 
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark');
@@ -74,6 +75,15 @@ function selectLang(lang) {
 
       <!-- Desktop Nav & Theme Toggle -->
       <div class="hidden md:flex items-center gap-1.5">
+        <!-- Add Chrome Extension Button (Prominent) -->
+        <button
+          @click="showExtensionModal = true"
+          class="btn-neon text-xs font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5 shadow-md hover:scale-105 transition-all"
+        >
+          <iconify-icon icon="logos:chrome" width="15"></iconify-icon>
+          <span>{{ t('addExtension') }}</span>
+        </button>
+
         <!-- Language Picker -->
         <div class="relative">
           <button
@@ -148,6 +158,14 @@ function selectLang(lang) {
 
       <!-- Mobile Right Controls -->
       <div class="flex md:hidden items-center gap-1.5">
+        <!-- Add Chrome Extension Button (Mobile) -->
+        <button
+          @click="showExtensionModal = true"
+          class="neu-pill px-2 py-1.5 rounded-lg text-slate-200 font-bold text-xs flex items-center gap-1 min-h-[36px]"
+        >
+          <iconify-icon icon="logos:chrome" width="15"></iconify-icon>
+        </button>
+
         <!-- Mobile Language -->
         <button
           @click="showLangPicker = !showLangPicker"
@@ -211,6 +229,14 @@ function selectLang(lang) {
         class="md:hidden mobile-glass-drawer border-b border-white/5 px-4 py-3 flex flex-col gap-2 shadow-xl absolute w-full left-0"
       >
         <button
+          @click="showExtensionModal = true; closeMenu()"
+          class="neu-pill flex items-center gap-2 p-2.5 rounded-lg text-slate-100 font-semibold text-xs text-left min-h-[40px]"
+        >
+          <iconify-icon icon="logos:chrome" width="16"></iconify-icon>
+          <span>{{ t('addExtension') }}</span>
+        </button>
+
+        <button
           @click="toggleTheme"
           class="neu-pill flex items-center justify-between p-2.5 rounded-lg text-slate-100 font-semibold text-xs w-full text-left min-h-[40px]"
         >
@@ -244,4 +270,71 @@ function selectLang(lang) {
       </div>
     </transition>
   </header>
+
+  <!-- ── Chrome Extension Download & Installation Modal ── -->
+  <div
+    v-if="showExtensionModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+    @click.self="showExtensionModal = false"
+  >
+    <div class="neu-card cyber-card-neon rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl relative">
+      <!-- Close Button -->
+      <button
+        @click="showExtensionModal = false"
+        class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+      >
+        <iconify-icon icon="ph:x-bold" width="18"></iconify-icon>
+      </button>
+
+      <!-- Header -->
+      <div class="text-center mb-5">
+        <div class="w-12 h-12 mx-auto rounded-2xl bg-neu-raised flex items-center justify-center border border-white/10 shadow-inner mb-3">
+          <iconify-icon icon="logos:chrome" width="28"></iconify-icon>
+        </div>
+        <h3 class="text-lg font-extrabold text-white">
+          {{ t('extensionModalTitle') }}
+        </h3>
+        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+          {{ t('extensionModalSubtitle') }}
+        </p>
+      </div>
+
+      <!-- Direct Download Button -->
+      <a
+        href="/GemCleanAI-Extension.zip"
+        download="GemCleanAI-Extension.zip"
+        class="btn-neon w-full flex items-center justify-center gap-2 font-bold text-sm py-2.5 rounded-xl shadow-lg no-underline text-white mb-5"
+      >
+        <iconify-icon icon="ph:download-simple-bold" width="18"></iconify-icon>
+        <span>{{ t('downloadExtensionZip') }}</span>
+      </a>
+
+      <!-- 3-Step Setup Instructions -->
+      <div class="space-y-2.5 text-xs">
+        <div class="neu-inset p-3 rounded-xl flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-neon-pink/20 text-neon-pink flex items-center justify-center font-bold text-[11px] flex-shrink-0 mt-0.5">1</span>
+          <div>
+            <h4 class="font-bold text-white">{{ t('extensionStep1Title') }}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">{{ t('extensionStep1Desc') }}</p>
+          </div>
+        </div>
+
+        <div class="neu-inset p-3 rounded-xl flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-neon-cyan/20 text-neon-cyan flex items-center justify-center font-bold text-[11px] flex-shrink-0 mt-0.5">2</span>
+          <div>
+            <h4 class="font-bold text-white">{{ t('extensionStep2Title') }}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">{{ t('extensionStep2Desc') }}</p>
+          </div>
+        </div>
+
+        <div class="neu-inset p-3 rounded-xl flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-neon-purple/20 text-neon-purple flex items-center justify-center font-bold text-[11px] flex-shrink-0 mt-0.5">3</span>
+          <div>
+            <h4 class="font-bold text-white">{{ t('extensionStep3Title') }}</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">{{ t('extensionStep3Desc') }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

@@ -29,6 +29,14 @@ try {
   const psCmd = `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path '${distDir}\\*' -DestinationPath '${zipDest}' -Force"`;
   execSync(psCmd, { stdio: 'inherit' });
   console.log('📦 Successfully created GemCleanAI-Extension.zip!');
+  
+  // Copy zip to public and dist for direct website download
+  const publicZip = path.join(rootDir, 'public', 'GemCleanAI-Extension.zip');
+  const distZip = path.join(rootDir, 'dist', 'GemCleanAI-Extension.zip');
+  fs.copyFileSync(zipDest, publicZip);
+  fs.copyFileSync(zipDest, distZip);
+  console.log('✅ Copied extension zip to public & dist for web download!');
 } catch (err) {
   console.error('⚠️ Warning: Zip creation failed via PowerShell, dist folder is ready to load in chrome://extensions as un-packed extension.');
 }
+
