@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GemCleanAI</string>
+    <string name="title_activity_main">GemCleanAI</string>
+    <string name="package_name">ai.gemclean.app</string>
+    <string name="custom_url_scheme">ai.gemclean.app</string>
+</resources>
