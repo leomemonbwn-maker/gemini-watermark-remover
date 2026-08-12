@@ -26,8 +26,6 @@ const originalUrl = ref('');
 const resultUrl = ref('');
 const downloadName = ref('clean_video.mp4');
 
-// Advanced "tune-it-yourself" mode (off = one-click auto removal)
-const advanced = ref(false);
 
 // Watermark position presets for Veo videos
 const VIDEO_PRESETS = [
@@ -77,14 +75,31 @@ async function handleFiles(fileList) {
 
   try {
     engine = await getEngine();
-    if (!advanced.value) {
-      await runExport();
-      return;
-    }
+    
+    // Always grab preview frame and show the advanced tool (tuner)
     const f = await grabPreviewFrame(file);
     frame.value = f;
-    base.value = engine.getVeoWatermark(f.width, f.height);
+    
+    // Auto-detect the watermark on the video frame just like we do for images
+    const { autoDetectWatermark } = await import('../engine/detector.js');
+    const detected = autoDetectWatermark(f.imageData, engine.engine.bg96, engine.engine.bg48);
+    
+    // Fallback to geometry if detection failed
+    if (!detected || !detected.detected) {
+      const { getWatermarkInfo } = await import('../engine/geometry.js');
+      base.value = getWatermarkInfo(f.width, f.height);
+    } else {
+      base.value = detected;
+    }
+    
     bgImg.value = engine.sparkleImage;
+    
+    // Set settings based on what was detected (reset offsets to 0 since detector finds exact location)
+    settings.offsetX = 0;
+    settings.offsetY = 0;
+    settings.gain = 0.6;
+    settings.sizeScale = 1;
+
     status.value = 'preview';
   } catch (e) {
     console.error(e);
@@ -136,6 +151,7 @@ async function runExport() {
     if (!engine) engine = await getEngine();
     const result = await engine.process(currentFile, {
       ...settings,
+      base: base.value,
       onProgress: (p) => { progress.value = p.progress ?? p; },
     });
 
@@ -240,10 +256,7 @@ function reset() {
           </label>
         </div>
 
-        <label class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
-          <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
-          <span>Advanced: fine-tune settings</span>
-        </label>
+
       </div>
       <input ref="fileInput" type="file" accept="video/*" class="hidden" aria-label="Video file input" @change="onChange" />
     </div>
@@ -354,7 +367,7 @@ function reset() {
                 <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
               </div>
             </button>
-            <button v-if="advanced" @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+            <button @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
               <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-neon-purple"></iconify-icon>
               <span>Adjust &amp; re-run</span>
             </button>
@@ -374,7 +387,7 @@ function reset() {
               <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
             </div>
           </button>
-          <button v-if="advanced" @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+          <button @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
             <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-neon-purple"></iconify-icon>
             <span>Adjust &amp; re-run</span>
           </button>
