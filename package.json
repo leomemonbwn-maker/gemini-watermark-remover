@@ -1,6 +1,6 @@
 {
   "name": "gemclean-ai",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GemClean AI – Free, private, in-browser tool to remove visible AI sparkle watermarks from Gemini images and Veo videos.",
   "type": "module",
   "scripts": {

@@ -13,7 +13,7 @@ const translations = {
     lightMode: 'Light Mode',
     
     // Hero
-    heroBadge: 'GemClean AI 2.0',
+    heroBadge: 'GemClean AI 2.1',
     heroBadgeSub: 'Free & Private',
     heroTitle1: 'Remove AI',
     heroTitle2: 'Watermarks Instantly',
@@ -185,7 +185,7 @@ const translations = {
     lightMode: 'लाइट मोड',
     
     // Hero
-    heroBadge: 'GemClean AI 2.0',
+    heroBadge: 'GemClean AI 2.1',
     heroBadgeSub: 'फ्री और प्राइवेट',
     heroTitle1: 'AI वॉटरमार्क',
     heroTitle2: 'तुरंत हटाएं',
