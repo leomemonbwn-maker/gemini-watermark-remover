@@ -44,7 +44,7 @@ const VIDEO_PRESETS = [
 ];
 const presetId = ref('veo');
 const currentPreset = computed(() => VIDEO_PRESETS.find((p) => p.id === presetId.value));
-const settings = reactive({ ...VIDEO_PRESETS[0].settings });
+const settings = reactive({ ...VIDEO_PRESETS[0].settings, aiRefine: false });
 
 watch(presetId, () => {
   Object.assign(settings, currentPreset.value.settings);
@@ -233,6 +233,11 @@ function reset() {
               <option v-for="p in VIDEO_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
             </select>
           </label>
+
+          <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer">
+            <input type="checkbox" v-model="settings.aiRefine" class="w-3.5 h-3.5 rounded" />
+            <span>AI Refine: No ghosting artifacts</span>
+          </label>
         </div>
 
 
@@ -268,6 +273,15 @@ function reset() {
             <button @click="resetSettings" class="w-full text-[11px] font-semibold text-slate-400 hover:text-neon-cyan transition-colors py-0.5">
               Reset sliders
             </button>
+
+            <label class="flex items-center gap-2 px-1 py-1 cursor-pointer group">
+              <input type="checkbox" v-model="settings.aiRefine" class="w-3.5 h-3.5 rounded border-white/10 bg-white/5 text-neon-cyan focus:ring-neon-cyan" />
+              <div class="flex flex-col">
+                <span class="text-[11px] font-bold text-slate-200 group-hover:text-neon-cyan transition-colors">AI Refine (Perfect)</span>
+                <span class="text-[9px] text-slate-500 leading-tight">Removes ghosting artifacts frame-by-frame</span>
+              </div>
+            </label>
+
             <button @click="runExport" class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all">
               <div class="flex items-center justify-center gap-1.5">
                 <iconify-icon icon="ph:sparkle-fill" width="16"></iconify-icon> Export Clean

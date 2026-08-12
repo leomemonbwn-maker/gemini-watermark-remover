@@ -13,7 +13,7 @@ const translations = {
     lightMode: 'Light Mode',
     
     // Hero
-    heroBadge: 'GemClean AI 2.0',
+    heroBadge: 'GemClean AI 2.1',
     heroBadgeSub: 'Free & Private',
     heroTitle1: 'Remove AI',
     heroTitle2: 'Watermarks Instantly',
@@ -49,7 +49,10 @@ const translations = {
     askAi: 'Ask AI',
     format: 'Format',
     share: 'Share',
-    
+    aiRefine: 'AI Refine',
+    refining: 'Refining...',
+    refinementDone: 'Refinement Done',
+
     // Confidence
     watermarkDetected: 'Watermark detected',
     confidence: 'Confidence',
@@ -182,7 +185,7 @@ const translations = {
     lightMode: 'लाइट मोड',
     
     // Hero
-    heroBadge: 'GemClean AI 2.0',
+    heroBadge: 'GemClean AI 2.1',
     heroBadgeSub: 'फ्री और प्राइवेट',
     heroTitle1: 'AI वॉटरमार्क',
     heroTitle2: 'तुरंत हटाएं',
@@ -218,7 +221,10 @@ const translations = {
     askAi: 'AI से पूछें',
     format: 'फॉर्मैट',
     share: 'शेयर',
-    
+    aiRefine: 'AI रिफाइन',
+    refining: 'साफ हो रहा है...',
+    refinementDone: 'सफाई पूरी हुई',
+
     // Confidence
     watermarkDetected: 'वॉटरमार्क मिला',
     confidence: 'विश्वसनीयता',

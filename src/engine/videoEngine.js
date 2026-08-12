@@ -1,5 +1,6 @@
 import { WatermarkEngine } from './watermarkEngine.js';
 import { removeWatermark } from './blendModes.js';
+import { refineWatermarkArea } from './refiner.js';
 import { resolveBox, getRoi, buildAlpha, cleanFrame } from './tuner.js';
 
 // Defaults that, in practice, make the Veo watermark effectively invisible.
@@ -72,11 +73,13 @@ export class VideoWatermarkEngine {
     /**
      * @param {File} file
      * @param {{gain?:number, offsetX?:number, offsetY?:number, sizeScale?:number,
+     *          aiRefine?:boolean,
      *          onProgress?:(p:{progress:number})=>void}} [opts]
      */
     async process(file, opts = {}) {
         const onProgress = opts.onProgress || (() => {});
         const gain = opts.gain ?? VIDEO_DEFAULTS.gain;
+        const doRefine = opts.aiRefine ?? false;
 
         const mb = await this._lib();
         const {
@@ -173,6 +176,15 @@ export class VideoWatermarkEngine {
 
             const px = ctx.getImageData(roi.x, roi.y, roi.width, roi.height);
             removeWatermark(px, alpha, region);
+
+            if (doRefine) {
+              refineWatermarkArea(px, {
+                x: wm.x - roi.x,
+                y: wm.y - roi.y,
+                size: wm.size
+              }, 0.6);
+            }
+
             ctx.putImageData(px, roi.x, roi.y);
 
             await videoSource.add(timestamp, dur);

@@ -3,6 +3,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
 import GeminiAnalyst from './GeminiAnalyst.vue';
 import { cleanFrame } from '../engine/tuner.js';
+import { refineWatermarkArea } from '../engine/refiner.js';
 import { pointTargetWatermark } from '../engine/detector.js';
 import { addEntry } from '../config/historyStore.js';
 import { useI18n } from '../config/i18n.js';
@@ -87,6 +88,7 @@ const fileInput = ref(null);
 const dragOver = ref(false);
 const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, configs, viewMode, sliderPos, format }
 const copiedIdx = ref(-1);
+const refiningIdx = ref(-1);
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
 const hasResults = computed(() => items.value.length > 0);
@@ -322,6 +324,53 @@ async function downloadFormatted(item) {
   a.download = `${item.name}.${ext}`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function refineItem(item, idx) {
+  if (!item.blob || !item.configs || !item.configs.length) return;
+
+  refiningIdx.value = idx;
+
+  try {
+    // Load the current cleaned image into a canvas to process
+    const img = new Image();
+    img.src = item.url;
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = item.width;
+    canvas.height = item.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, item.width, item.height);
+
+    // Apply refinement for each detected watermark
+    item.configs.forEach(config => {
+      refineWatermarkArea(imageData, config, 0.6);
+    });
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Create new blob and URL
+    const refinedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+
+    if (item.url) URL.revokeObjectURL(item.url);
+    item.url = URL.createObjectURL(refinedBlob);
+    item.blob = refinedBlob;
+
+    // Re-calculate PSNR
+    calculatePSNR(item.originalSrc, refinedBlob).then(score => {
+      if (score !== null) item.psnr = score;
+    });
+
+    // Visual feedback delay
+    await new Promise(r => setTimeout(r, 800));
+  } catch (e) {
+    console.error('Refinement failed:', e);
+  } finally {
+    refiningIdx.value = -1;
+  }
 }
 
 async function downloadAll() {
@@ -678,6 +727,15 @@ function reset() {
 
             <!-- Controls Row: Actions, Format, Download, Share -->
             <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/5 text-xs">
+              <button
+                @click="refineItem(item, i)"
+                :disabled="refiningIdx === i"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 font-bold text-slate-200 hover:text-neon-cyan rounded-lg transition-all flex items-center gap-1 min-h-[34px] disabled:opacity-50"
+              >
+                <iconify-icon :icon="refiningIdx === i ? 'ph:spinner-gap-bold' : 'ph:magic-wand-bold'" :class="['text-neon-cyan', refiningIdx === i ? 'animate-spin' : '']" width="13"></iconify-icon>
+                <span>{{ refiningIdx === i ? t('refining') : t('aiRefine') }}</span>
+              </button>
+
               <button
                 @click="item.showAnalyst = !item.showAnalyst"
                 class="btn-micro-pop neu-pill px-2.5 py-1.5 font-bold text-slate-200 hover:text-neon-purple rounded-lg transition-all flex items-center gap-1 min-h-[34px]"

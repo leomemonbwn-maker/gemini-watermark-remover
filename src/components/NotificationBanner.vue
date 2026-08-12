@@ -13,7 +13,7 @@ const visible = ref(true);
       <div class="flex items-center gap-2 text-xs sm:text-sm font-medium leading-normal">
         <iconify-icon icon="ph:sparkle-fill" width="16" class="flex-shrink-0 text-neon-pink" aria-hidden="true"></iconify-icon>
         <p class="m-0 line-clamp-2 sm:line-clamp-none">
-          <strong class="font-bold text-neon-pink">New:</strong> Supports new &amp; classic Gemini watermark presets — selectable in dropdown.
+          <strong class="font-bold text-neon-pink">Update:</strong> AI Restore is now available for both <strong class="text-white">Images &amp; Videos</strong>! Get a perfect, ghost-free result with 1-click.
         </p>
       </div>
       <button
