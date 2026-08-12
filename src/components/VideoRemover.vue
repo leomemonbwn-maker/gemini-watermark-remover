@@ -75,31 +75,11 @@ async function handleFiles(fileList) {
 
   try {
     engine = await getEngine();
-    
-    // Always grab preview frame and show the advanced tool (tuner)
+    // ALWAYS grab preview frame for video, so user can confirm/tune
     const f = await grabPreviewFrame(file);
     frame.value = f;
-    
-    // Auto-detect the watermark on the video frame just like we do for images
-    const { autoDetectWatermark } = await import('../engine/detector.js');
-    const detected = autoDetectWatermark(f.imageData, engine.engine.bg96, engine.engine.bg48);
-    
-    // Fallback to geometry if detection failed
-    if (!detected || !detected.detected) {
-      const { getWatermarkInfo } = await import('../engine/geometry.js');
-      base.value = getWatermarkInfo(f.width, f.height);
-    } else {
-      base.value = detected;
-    }
-    
+    base.value = engine.getVeoWatermark(f.width, f.height);
     bgImg.value = engine.sparkleImage;
-    
-    // Set settings based on what was detected (reset offsets to 0 since detector finds exact location)
-    settings.offsetX = 0;
-    settings.offsetY = 0;
-    settings.gain = 0.6;
-    settings.sizeScale = 1;
-
     status.value = 'preview';
   } catch (e) {
     console.error(e);
@@ -151,7 +131,6 @@ async function runExport() {
     if (!engine) engine = await getEngine();
     const result = await engine.process(currentFile, {
       ...settings,
-      base: base.value,
       onProgress: (p) => { progress.value = p.progress ?? p; },
     });
 

@@ -43,6 +43,32 @@ export class VideoWatermarkEngine {
         return this.engine.bg96;
     }
 
+    /** Default Veo watermark box (bottom-right): size ≈ shortSide/15, margin ≈ shortSide/10. */
+    getVeoWatermark(width, height) {
+        const base = Math.min(width, height);
+        const size = Math.max(24, Math.min(Math.round(base / 15), base));
+        const margin = Math.round(base / 10);
+        return {
+            size,
+            x: Math.max(0, width - margin - size),
+            y: Math.max(0, height - margin - size),
+            width: size,
+            height: size,
+        };
+    }
+
+    /**
+     * Clean a single full-frame ImageData in place (used for the live preview).
+     * Returns the resolved watermark box + ROI so the UI can draw guides.
+     */
+    previewClean(fullImageData, width, height, opts = {}) {
+        const base = this.getVeoWatermark(width, height);
+        return cleanFrame(this.engine.bg96, fullImageData, width, height, base, {
+            ...opts,
+            gain: opts.gain ?? VIDEO_DEFAULTS.gain,
+        });
+    }
+
     /**
      * @param {File} file
      * @param {{gain?:number, offsetX?:number, offsetY?:number, sizeScale?:number,
@@ -85,14 +111,7 @@ export class VideoWatermarkEngine {
             if (stats?.averagePacketRate) frameRate = Math.round(stats.averagePacketRate);
         } catch { /* keep default */ }
 
-        let base;
-        if (opts.base) {
-            base = opts.base;
-        } else {
-            // fallback
-            const { getWatermarkInfo } = await import('./geometry.js');
-            base = getWatermarkInfo(width, height);
-        }
+        const base = this.getVeoWatermark(width, height);
         const wm = resolveBox(base, width, height, opts);
         const roi = getRoi(width, height, wm);
         const alpha = buildAlpha(this.engine.bg96, roi, wm, gain);
