@@ -27,11 +27,22 @@ npm install
 # Start development server
 npm run dev
 
+# Build Chrome Extension
+npm run build:ext
+
 # Build production bundle
 npm run build
 ```
 
+### 🧩 Chrome Extension Installation (Option 2 - Manual Load)
+1. Run `npm run build:ext` to build the extension bundle.
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. Enable **Developer Mode** toggle in the top-right corner.
+4. Click **Load Unpacked** and select the `dist` folder, OR extract and load `GemCleanAI-Extension.zip`.
+5. Pin **GemClean AI** to your Chrome toolbar for 1-click access!
+
 ---
+
 
 ## ⚙️ Customizing Brand Settings
 
