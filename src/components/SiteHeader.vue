@@ -75,13 +75,17 @@ function selectLang(lang) {
 
       <!-- Desktop Nav & Theme Toggle -->
       <div class="hidden md:flex items-center gap-1.5">
-        <!-- Add Chrome Extension Button (Prominent) -->
+        <!-- Chrome Extension Icon Button -->
         <button
           @click="showExtensionModal = true"
-          class="btn-neon text-xs font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5 shadow-md hover:scale-105 transition-all"
+          class="neu-pill p-2 rounded-lg text-slate-300 hover:text-neon-cyan transition-all min-w-[34px] min-h-[34px] flex items-center justify-center relative group"
+          title="Get Chrome Extension"
         >
-          <iconify-icon icon="logos:chrome" width="15"></iconify-icon>
-          <span>{{ t('addExtension') }}</span>
+          <iconify-icon icon="logos:chrome" width="18"></iconify-icon>
+          <span class="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-cyan opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-neon-cyan"></span>
+          </span>
         </button>
 
         <!-- Language Picker -->
