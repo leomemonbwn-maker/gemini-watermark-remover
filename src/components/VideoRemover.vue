@@ -1,9 +1,18 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
+import BrushMaskEditor from './BrushMaskEditor.vue';
 import { useI18n } from '../config/i18n.js';
 
 const { t } = useI18n();
+
+// Video removal mode: 'sparkle' or 'brush'
+const videoMode = ref('sparkle');
+const brushMaskActive = ref(false);
+const brushFrameData = ref(null);
+const brushFrameSrc = ref('');
+const brushMaskArr = ref(null);
+const brushEditorRef = ref(null);
 
 let enginePromise = null;
 function getEngine() {
@@ -220,7 +229,187 @@ function reset() {
   status.value = 'idle';
   currentFile = null;
   frame.value = null;
+  // Brush mode cleanup
+  brushMaskActive.value = false;
+  brushFrameData.value = null;
+  if (brushFrameSrc.value) URL.revokeObjectURL(brushFrameSrc.value);
+  brushFrameSrc.value = '';
+  brushMaskArr.value = null;
   if (fileInput.value) fileInput.value.value = '';
+}
+
+// ── Brush Mode for Video ─────────────────────────────────────────────
+
+async function handleBrushVideo(fileList) {
+  const file = Array.from(fileList).find(f => f.type.startsWith('video/'));
+  if (!file) return;
+  reset();
+  currentFile = file;
+  fileName.value = file.name;
+  status.value = 'loading';
+
+  try {
+    const f = await grabPreviewFrame(file);
+    brushFrameData.value = f.imageData;
+    // Create a display URL from the frame
+    const c = document.createElement('canvas');
+    c.width = f.width; c.height = f.height;
+    c.getContext('2d').putImageData(f.imageData, 0, 0);
+    brushFrameSrc.value = c.toDataURL('image/png');
+    displayDimensions.value = `${f.width}×${f.height}`;
+    brushMaskActive.value = true;
+    status.value = 'idle'; // hide loading spinner
+  } catch (e) {
+    console.error(e);
+    fail(e?.message || 'Could not read this video.');
+  }
+}
+
+async function onBrushVideoResult(result) {
+  // User finished drawing mask — get the mask array from the editor
+  if (brushEditorRef.value) {
+    brushMaskArr.value = brushEditorRef.value.getMaskArray();
+  }
+  // Now run per-frame inpainting export
+  brushMaskActive.value = false;
+  await runBrushExport();
+}
+
+async function runBrushExport() {
+  if (!currentFile || !brushMaskArr.value) return;
+  status.value = 'processing';
+  progress.value = 0;
+
+  try {
+    const { inpaintRegion } = await import('../engine/inpaintEngine.js');
+    const mb = await import('mediabunny');
+    const {
+      ALL_FORMATS, BlobSource, BufferTarget, CanvasSource,
+      EncodedAudioPacketSource, EncodedPacketSink, Input,
+      Mp4OutputFormat, Output, QUALITY_HIGH, VideoSampleSink, canEncodeVideo,
+    } = mb;
+
+    if (canEncodeVideo && !(await canEncodeVideo('avc'))) {
+      throw new Error('Your browser cannot encode H.264 video.');
+    }
+
+    const input = new Input({ source: new BlobSource(currentFile), formats: ALL_FORMATS });
+    const videoTrack = await input.getPrimaryVideoTrack();
+    if (!videoTrack) throw new Error('No video track found.');
+
+    const width = videoTrack.displayWidth ?? videoTrack.codedWidth;
+    const height = videoTrack.displayHeight ?? videoTrack.codedHeight;
+    const duration = await input.computeDuration().catch(() => 0);
+
+    let frameRate = 30;
+    try {
+      const stats = await videoTrack.computePacketStats(120);
+      if (stats?.averagePacketRate) frameRate = Math.round(stats.averagePacketRate);
+    } catch {}
+
+    const canvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(width, height)
+      : Object.assign(document.createElement('canvas'), { width, height });
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    const target = new BufferTarget();
+    const output = new Output({ format: new Mp4OutputFormat(), target });
+    const videoSource = new CanvasSource(canvas, {
+      codec: 'avc', bitrate: QUALITY_HIGH, keyFrameInterval: 2, sizeChangeBehavior: 'passThrough',
+    });
+    output.addVideoTrack(videoSource, { frameRate });
+
+    // Audio passthrough
+    let audioSource = null;
+    let audioTrack = null;
+    let audioDecoderConfig = null;
+    try {
+      audioTrack = await input.getPrimaryAudioTrack();
+      if (audioTrack) {
+        const audioCodec = await audioTrack.getCodec();
+        audioDecoderConfig = await audioTrack.getDecoderConfig().catch(() => null);
+        if (audioCodec && audioDecoderConfig) {
+          audioSource = new EncodedAudioPacketSource(audioCodec);
+          output.addAudioTrack(audioSource);
+        }
+      }
+    } catch { audioSource = null; }
+
+    await output.start();
+
+    const mask = brushMaskArr.value;
+    const fallbackDur = frameRate > 0 ? 1 / frameRate : 1 / 30;
+    const sink = new VideoSampleSink(videoTrack);
+    let firstTimestamp = null;
+    let lastTimestamp = -1;
+
+    for await (const sample of sink.samples()) {
+      if (firstTimestamp === null) firstTimestamp = sample.timestamp;
+      let timestamp = sample.timestamp - firstTimestamp;
+      if (!(timestamp >= 0)) timestamp = 0;
+      if (timestamp <= lastTimestamp) timestamp = lastTimestamp + fallbackDur;
+      const dur = Number.isFinite(sample.duration) && sample.duration > 0 ? sample.duration : fallbackDur;
+      lastTimestamp = timestamp;
+
+      sample.draw(ctx, 0, 0, width, height);
+      sample.close();
+
+      // Inpaint the masked region on each frame
+      const px = ctx.getImageData(0, 0, width, height);
+      inpaintRegion(px, mask, { method: 'telea', radius: 5 });
+      ctx.putImageData(px, 0, 0);
+
+      await videoSource.add(timestamp, dur);
+      if (duration) progress.value = Math.min(0.99, timestamp / duration);
+    }
+    videoSource.close();
+
+    // Audio passthrough
+    if (audioSource) {
+      try {
+        const offset = firstTimestamp ?? 0;
+        const aSink = new EncodedPacketSink(audioTrack);
+        let isFirstAudio = true;
+        let lastAudioTs = -1;
+        for await (const packet of aSink.packets()) {
+          let newTs = packet.timestamp - offset;
+          if (newTs < 0) continue;
+          if (newTs <= lastAudioTs) newTs = lastAudioTs + 1e-6;
+          lastAudioTs = newTs;
+          let outPacket = packet;
+          if (newTs !== packet.timestamp && typeof packet.clone === 'function') {
+            outPacket = packet.clone({ timestamp: newTs });
+          }
+          await audioSource.add(outPacket, isFirstAudio && audioDecoderConfig ? { decoderConfig: audioDecoderConfig } : undefined);
+          isFirstAudio = false;
+        }
+      } catch (e) { console.warn('Audio passthrough failed:', e); } finally { audioSource.close(); }
+    }
+
+    await output.finalize();
+    input.dispose?.();
+
+    if (!target.buffer) throw new Error('Video export produced no output.');
+
+    const blob = new Blob([target.buffer], { type: 'video/mp4' });
+    originalUrl.value = URL.createObjectURL(currentFile);
+    resultUrl.value = URL.createObjectURL(blob);
+    downloadName.value = `clean_${currentFile.name.replace(/\.[^/.]+$/, '')}.mp4`;
+    progress.value = 1;
+    status.value = 'done';
+  } catch (err) {
+    console.error(err);
+    fail(err?.message || 'Failed to process video.');
+  }
+}
+
+function cancelBrushMask() {
+  brushMaskActive.value = false;
+  brushFrameData.value = null;
+  if (brushFrameSrc.value) URL.revokeObjectURL(brushFrameSrc.value);
+  brushFrameSrc.value = '';
+  brushMaskArr.value = null;
+  status.value = 'idle';
 }
 </script>
 
@@ -236,6 +425,31 @@ function reset() {
       <p class="text-xs text-red-500/80 mt-0.5">Please try the latest Chrome, Edge, or Safari.</p>
     </div>
 
+    <!-- Brush Mask Editor for Video -->
+    <div v-else-if="brushMaskActive && brushFrameData" class="animate-fade-in">
+      <div class="flex items-center gap-2 mb-3">
+        <button @click="cancelBrushMask" class="text-xs text-slate-400 hover:text-neon-cyan flex items-center gap-1 font-bold">
+          <iconify-icon icon="ph:arrow-left-bold" width="14"></iconify-icon>
+          Back
+        </button>
+        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+          <iconify-icon icon="ph:paint-brush-bold" class="text-neon-purple" width="16"></iconify-icon>
+          Video Watermark Mask — Draw on first frame
+        </h3>
+      </div>
+      <BrushMaskEditor
+        ref="brushEditorRef"
+        :image-data="brushFrameData"
+        :image-src="brushFrameSrc"
+        @result="onBrushVideoResult"
+        @cancel="cancelBrushMask"
+      />
+      <p class="text-[10px] text-slate-500 mt-2 text-center">
+        <iconify-icon icon="ph:info" class="text-neon-purple align-middle mr-1"></iconify-icon>
+        Same mask will be applied to every frame of the video.
+      </p>
+    </div>
+
     <!-- Upload (Compact) -->
     <div
       v-else-if="status === 'idle'"
@@ -247,13 +461,43 @@ function reset() {
       @dragleave.prevent="dragOver = false" @drop.prevent="onDrop"
     >
       <div class="flex flex-col items-center justify-center relative text-center">
+        <!-- Mode Switcher -->
+        <div class="flex justify-center mb-3">
+          <div class="p-0.5 rounded-lg neu-inset inline-flex gap-0.5">
+            <button
+              @click.stop="videoMode = 'sparkle'"
+              :class="[
+                'flex items-center gap-1 px-3 py-1.5 rounded-md font-bold text-[11px] transition-all',
+                videoMode === 'sparkle'
+                  ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30'
+                  : 'text-slate-400 hover:text-white',
+              ]"
+            >
+              <iconify-icon icon="ph:sparkle-bold" width="13"></iconify-icon>
+              Gemini Veo
+            </button>
+            <button
+              @click.stop="videoMode = 'brush'"
+              :class="[
+                'flex items-center gap-1 px-3 py-1.5 rounded-md font-bold text-[11px] transition-all',
+                videoMode === 'brush'
+                  ? 'bg-neon-pink/20 text-neon-pink border border-neon-pink/30'
+                  : 'text-slate-400 hover:text-white',
+              ]"
+            >
+              <iconify-icon icon="ph:paint-brush-bold" width="13"></iconify-icon>
+              Any Watermark
+            </button>
+          </div>
+        </div>
+
         <div class="relative flex items-center justify-center mb-2.5">
           <div class="absolute inset-0 rounded-full bg-neon-purple/15 animate-ripple"></div>
           <div
             class="relative w-11 h-11 sm:w-13 sm:h-13 neu-pill rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
           >
             <iconify-icon
-              icon="ph:video-camera-bold"
+              :icon="videoMode === 'brush' ? 'ph:paint-brush-bold' : 'ph:video-camera-bold'"
               class="text-xl sm:text-2xl text-neon-purple group-hover:text-neon-pink transition-colors"
               aria-hidden="true"
             ></iconify-icon>
@@ -261,16 +505,25 @@ function reset() {
         </div>
         
         <p class="mb-0.5 text-xs sm:text-sm font-bold text-slate-100 group-hover:text-neon-purple transition-colors tracking-tight px-2">
-          Click to upload or drag a Gemini Veo video
+          {{ videoMode === 'brush' ? 'Upload video to mark watermark area' : 'Click to upload or drag a Gemini Veo video' }}
         </p>
-        <p class="text-[11px] text-slate-500">MP4, WebM, MOV · Lossless audio preservation</p>
+        <p class="text-[11px] text-slate-500">
+          {{ videoMode === 'brush' ? 'Draw mask on first frame · Applied to all frames' : 'MP4, WebM, MOV · Lossless audio preservation' }}
+        </p>
         
-        <label class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
+        <label v-if="videoMode === 'sparkle'" class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
           <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
           <span>Advanced: reposition target box</span>
         </label>
       </div>
-      <input ref="fileInput" type="file" accept="video/*" class="hidden" aria-label="Video file input" @change="onChange" />
+      <input
+        ref="fileInput"
+        type="file"
+        accept="video/*"
+        class="hidden"
+        aria-label="Video file input"
+        @change="videoMode === 'brush' ? handleBrushVideo($event.target.files) : onChange($event)"
+      />
     </div>
 
     <!-- Loading Preview Frame -->

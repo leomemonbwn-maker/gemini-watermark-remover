@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
 import GeminiAnalyst from './GeminiAnalyst.vue';
+import BrushMaskEditor from './BrushMaskEditor.vue';
 import { cleanFrame } from '../engine/tuner.js';
 import { refineWatermarkArea } from '../engine/refiner.js';
 import { pointTargetWatermark } from '../engine/detector.js';
@@ -9,6 +10,16 @@ import { addEntry } from '../config/historyStore.js';
 import { useI18n } from '../config/i18n.js';
 
 const { t } = useI18n();
+
+// Removal mode: 'sparkle' (Gemini template) or 'brush' (any watermark via inpainting)
+const removalMode = ref('sparkle');
+
+// Brush mode state
+const brushFile = ref(null);
+const brushImageData = ref(null);
+const brushImageSrc = ref('');
+const brushActive = ref(false);
+const brushEditorRef = ref(null);
 
 // PSNR quality score calculation
 function calculatePSNR(originalSrc, cleanedBlob) {
@@ -130,6 +141,84 @@ onUnmounted(() => {
 });
 
 const advanced = ref(false);
+
+// ── Brush Mode Handlers ───────────────────────────────────────────────────
+
+function loadImageForBrush(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const cx = c.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(img, 0, 0);
+      resolve({ width: w, height: h, imageData: cx.getImageData(0, 0, w, h), src: url });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image')); };
+    img.src = url;
+  });
+}
+
+async function handleBrushFiles(fileList) {
+  const file = Array.from(fileList).find(f => f.type.startsWith('image/'));
+  if (!file) return;
+  try {
+    const { width, height, imageData, src } = await loadImageForBrush(file);
+    brushFile.value = file;
+    brushImageData.value = imageData;
+    brushImageSrc.value = src;
+    brushActive.value = true;
+  } catch (e) {
+    console.error(e);
+    alert('Could not read this image.');
+  }
+}
+
+function onBrushResult(result) {
+  const idx = items.value.push({
+    file: brushFile.value,
+    name: brushFile.value?.name || 'cleaned',
+    displayName: (brushFile.value?.name || 'cleaned').replace(/\.[^/.]+$/, '').slice(0, 24),
+    status: 'done',
+    originalSrc: brushImageSrc.value,
+    url: result.url,
+    blob: result.blob,
+    width: result.width,
+    height: result.height,
+    config: null,
+    configs: [],
+    viewMode: 'sideBySide',
+    sliderPos: 50,
+    format: 'png',
+    showAnalyst: false,
+    psnr: null,
+    isBrushMode: true,
+  }) - 1;
+
+  addEntry({
+    name: brushFile.value?.name || 'cleaned',
+    blobUrl: result.url,
+    width: result.width,
+    height: result.height,
+    blob: result.blob,
+  });
+
+  calculatePSNR(brushImageSrc.value, result.blob).then(score => {
+    if (score !== null) items.value[idx].psnr = score;
+  });
+
+  brushActive.value = false;
+}
+
+function cancelBrush() {
+  brushActive.value = false;
+  if (brushImageSrc.value) URL.revokeObjectURL(brushImageSrc.value);
+  brushImageSrc.value = '';
+  brushImageData.value = null;
+  brushFile.value = null;
+}
 
 const IMG_PRESETS = [
   {
@@ -517,6 +606,12 @@ function reset() {
   tunerOrigSrc.value = '';
   tunerActive.value = false;
   tunerFrame.value = null;
+  // Brush mode cleanup
+  brushActive.value = false;
+  if (brushImageSrc.value) URL.revokeObjectURL(brushImageSrc.value);
+  brushImageSrc.value = '';
+  brushImageData.value = null;
+  brushFile.value = null;
   if (fileInput.value) fileInput.value.value = '';
 }
 </script>
@@ -580,6 +675,27 @@ function reset() {
       </div>
     </div>
 
+    <!-- Brush Mask Editor Mode -->
+    <div v-else-if="brushActive && brushImageData" class="animate-fade-in">
+      <div class="flex items-center gap-2 mb-3">
+        <button @click="cancelBrush" class="text-xs text-slate-400 hover:text-neon-cyan flex items-center gap-1 font-bold">
+          <iconify-icon icon="ph:arrow-left-bold" width="14"></iconify-icon>
+          Back
+        </button>
+        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+          <iconify-icon icon="ph:paint-brush-bold" class="text-neon-pink" width="16"></iconify-icon>
+          Any Watermark Removal
+        </h3>
+      </div>
+      <BrushMaskEditor
+        ref="brushEditorRef"
+        :image-data="brushImageData"
+        :image-src="brushImageSrc"
+        @result="onBrushResult"
+        @cancel="cancelBrush"
+      />
+    </div>
+
     <!-- Upload Dropzone (Sleek & Compact) -->
     <div
       v-else-if="!hasResults"
@@ -596,6 +712,36 @@ function reset() {
       @drop.prevent="onDrop"
     >
       <div class="flex flex-col items-center justify-center relative text-center">
+        <!-- Mode Switcher -->
+        <div class="flex justify-center mb-3">
+          <div class="p-0.5 rounded-lg neu-inset inline-flex gap-0.5">
+            <button
+              @click.stop="removalMode = 'sparkle'"
+              :class="[
+                'flex items-center gap-1 px-3 py-1.5 rounded-md font-bold text-[11px] transition-all',
+                removalMode === 'sparkle'
+                  ? 'bg-neon-pink/20 text-neon-pink border border-neon-pink/30'
+                  : 'text-slate-400 hover:text-white',
+              ]"
+            >
+              <iconify-icon icon="ph:sparkle-bold" width="13"></iconify-icon>
+              Gemini Sparkle
+            </button>
+            <button
+              @click.stop="removalMode = 'brush'"
+              :class="[
+                'flex items-center gap-1 px-3 py-1.5 rounded-md font-bold text-[11px] transition-all',
+                removalMode === 'brush'
+                  ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30'
+                  : 'text-slate-400 hover:text-white',
+              ]"
+            >
+              <iconify-icon icon="ph:paint-brush-bold" width="13"></iconify-icon>
+              Any Watermark
+            </button>
+          </div>
+        </div>
+
         <!-- Center Icon -->
         <div class="relative flex items-center justify-center mb-2.5">
           <div class="absolute inset-0 rounded-full bg-neon-pink/15 animate-ripple"></div>
@@ -603,18 +749,20 @@ function reset() {
             class="relative w-11 h-11 sm:w-13 sm:h-13 neu-pill rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
           >
             <iconify-icon
-              icon="ph:upload-simple-bold"
+              :icon="removalMode === 'brush' ? 'ph:paint-brush-bold' : 'ph:upload-simple-bold'"
               class="text-xl sm:text-2xl text-neon-cyan group-hover:text-neon-pink transition-colors"
             ></iconify-icon>
           </div>
         </div>
         
         <p class="mb-0.5 text-xs sm:text-sm font-bold text-slate-100 group-hover:text-neon-pink transition-colors tracking-tight px-2">
-          Click to upload or drag images here
+          {{ removalMode === 'brush' ? 'Upload image to mark watermark area' : 'Click to upload or drag images here' }}
         </p>
-        <p class="text-[11px] text-slate-500">PNG, JPG, WebP · Batch processing supported</p>
+        <p class="text-[11px] text-slate-500">
+          {{ removalMode === 'brush' ? 'Paint over any watermark · Text, logos, stamps' : 'PNG, JPG, WebP · Batch processing supported' }}
+        </p>
         
-        <label class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
+        <label v-if="removalMode === 'sparkle'" class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
           <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
           <span>Advanced: reposition target box</span>
         </label>
@@ -624,10 +772,10 @@ function reset() {
         ref="fileInput"
         type="file"
         accept="image/*,.gif"
-        multiple
+        :multiple="removalMode === 'sparkle'"
         class="hidden"
         aria-label="File input"
-        @change="onChange"
+        @change="removalMode === 'brush' ? handleBrushFiles($event.target.files) : onChange($event)"
       />
     </div>
 
