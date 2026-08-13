@@ -166,7 +166,7 @@ const tunerBase = ref(null);
 const tunerBgImg = ref(null);
 const tunerName = ref('clean_image.png');
 const tunerOrigSrc = ref('');
-const tunerSettings = reactive({ gain: 1, offsetX: 0, offsetY: 0, sizeScale: 1 });
+const tunerSettings = reactive({ gain: 1, offsetX: 0, offsetY: 0, sizeScale: 1, aiRefine: false });
 
 watch(presetId, () => {
   if (presetId.value !== 'auto') {
@@ -446,7 +446,8 @@ async function startTuner(file, engine, initialConfig = null) {
     tunerSettings.offsetX = 0;
     tunerSettings.offsetY = 0;
     tunerSettings.sizeScale = 1;
-    
+    tunerSettings.aiRefine = false;
+
     tunerActive.value = true;
   } catch (e) {
     console.error(e);
@@ -465,6 +466,7 @@ function resetTunerSettings() {
   tunerSettings.offsetX = 0;
   tunerSettings.offsetY = 0;
   tunerSettings.sizeScale = 1;
+  tunerSettings.aiRefine = false;
 }
 
 async function downloadTuner() {
