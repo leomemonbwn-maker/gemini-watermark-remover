@@ -1,7 +1,6 @@
 <script setup>
 import { ref, watch, onMounted, nextTick } from 'vue';
 import { cleanFrame } from '../engine/tuner.js';
-import { refineWatermarkArea } from '../engine/refiner.js';
 
 const props = defineProps({
   settings: { type: Object, required: true }, // reactive { gain, offsetX, offsetY, sizeScale }
@@ -67,10 +66,6 @@ function render() {
 
   const copy = new ImageData(new Uint8ClampedArray(imageData.data), width, height);
   const { wm, roi } = cleanFrame(props.bgImg, copy, width, height, props.base, { ...props.settings });
-
-  if (props.settings.aiRefine && wm) {
-    refineWatermarkArea(copy, wm, 0.6);
-  }
 
   offscreen.getContext('2d').putImageData(copy, 0, 0);
 
@@ -171,20 +166,6 @@ defineExpose({ render });
           <span>Position Y</span><span>{{ settings.offsetY }}px</span>
         </div>
         <input type="range" min="-300" max="300" step="1" v-model.number="settings.offsetY" class="w-full cursor-pointer" />
-      </label>
-    </div>
-
-    <div class="mt-4 p-3 rounded-xl bg-neon-cyan/5 border border-neon-cyan/10 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <iconify-icon icon="ph:magic-wand-fill" class="text-neon-cyan text-lg"></iconify-icon>
-        <div class="flex flex-col">
-          <span class="text-xs font-bold text-slate-100">AI Refine (Preview)</span>
-          <span class="text-[10px] text-slate-500">Enable to see the ghost-free result in real-time</span>
-        </div>
-      </div>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" v-model="settings.aiRefine" class="sr-only peer" />
-        <div class="w-11 h-6 bg-white/5 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-cyan"></div>
       </label>
     </div>
   </div>

@@ -472,17 +472,39 @@ function resetTunerSettings() {
 async function downloadTuner() {
   const { width, height, imageData } = tunerFrame.value;
   const copy = new ImageData(new Uint8ClampedArray(imageData.data), width, height);
-  cleanFrame(tunerBgImg.value, copy, width, height, tunerBase.value, { ...tunerSettings });
+  const { wm } = cleanFrame(tunerBgImg.value, copy, width, height, tunerBase.value, { ...tunerSettings });
+
   const c = document.createElement('canvas');
   c.width = width; c.height = height;
   c.getContext('2d').putImageData(copy, 0, 0);
   const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = tunerName.value;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  // Instead of just downloading, add to results list so user can use "AI Refine" card
+  const idx = items.value.push({
+    file: null, // Manually processed
+    name: tunerName.value,
+    displayName: tunerName.value.replace(/\.[^/.]+$/, '').slice(0, 24),
+    status: 'done',
+    originalSrc: tunerOrigSrc.value,
+    url: URL.createObjectURL(blob),
+    blob: blob,
+    width: width,
+    height: height,
+    config: wm,
+    configs: [wm],
+    viewMode: 'sideBySide',
+    sliderPos: 50,
+    format: 'png',
+    showAnalyst: false,
+    psnr: null,
+  }) - 1;
+
+  calculatePSNR(tunerOrigSrc.value, blob).then(score => {
+    if (score !== null) items.value[idx].psnr = score;
+  });
+
+  tunerActive.value = false;
+  tunerFrame.value = null;
 }
 
 function reset() {
@@ -531,7 +553,7 @@ function reset() {
             </button>
             <button @click="downloadTuner" class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white transition-all text-xs">
               <div class="flex items-center justify-center gap-1.5">
-                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download PNG
+                <iconify-icon icon="ph:check-circle-bold" width="16"></iconify-icon> Apply & Clean
               </div>
             </button>
             <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
