@@ -25,7 +25,9 @@ const errorMsg = ref('');
 const originalUrl = ref('');
 const resultUrl = ref('');
 const downloadName = ref('clean_video.mp4');
-
+const advanced = ref(false);
+const fileName = ref('');
+const displayDimensions = ref('');
 
 // Watermark position presets for Veo videos
 const VIDEO_PRESETS = [
@@ -71,16 +73,23 @@ async function handleFiles(fileList) {
   if (!file) return;
   reset();
   currentFile = file;
+  fileName.value = file.name;
   status.value = 'loading';
 
   try {
     engine = await getEngine();
-    // ALWAYS grab preview frame for video, so user can confirm/tune
     const f = await grabPreviewFrame(file);
     frame.value = f;
+    displayDimensions.value = `${f.width}×${f.height}`;
     base.value = engine.getVeoWatermark(f.width, f.height);
     bgImg.value = engine.sparkleImage;
-    status.value = 'preview';
+
+    if (advanced.value) {
+      status.value = 'preview';
+    } else {
+      // Auto-process like images
+      runExport();
+    }
   } catch (e) {
     console.error(e);
     fail(e?.message || 'Could not read this video.');
@@ -173,6 +182,28 @@ function download() {
   a.click();
 }
 
+function openDonate() {
+  window.dispatchEvent(new CustomEvent('open-donate'));
+}
+
+async function shareVideo() {
+  if (!resultUrl.value || !navigator.share) return;
+  try {
+    const res = await fetch(resultUrl.value);
+    const blob = await res.blob();
+    const file = new File([blob], downloadName.value, { type: 'video/mp4' });
+    await navigator.share({
+      title: 'GemClean AI - Cleaned Video',
+      text: 'Watermark removed from video! 🎬',
+      files: [file],
+    });
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('Share failed:', e);
+  }
+}
+
+const canShare = typeof navigator !== 'undefined' && !!navigator.share;
+
 function fail(msg) {
   errorMsg.value = msg;
   status.value = 'error';
@@ -233,27 +264,10 @@ function reset() {
         </p>
         <p class="text-[11px] text-slate-500">MP4, WebM, MOV · Lossless audio preservation</p>
         
-        <div class="mt-3.5 flex flex-col items-center gap-2.5" @click.stop>
-          <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
-            <span>Watermark position:</span>
-            <select
-              v-model="presetId"
-              class="text-[11px] font-semibold neu-pill rounded-lg px-2 py-1 text-slate-200 focus:outline-none cursor-pointer"
-            >
-              <option v-for="p in VIDEO_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
-            </select>
-          </label>
-
-          <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-neon-cyan/5 border border-neon-cyan/10">
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" v-model="settings.aiRefine" class="sr-only peer" />
-              <div class="w-9 h-5 bg-white/5 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-neon-cyan"></div>
-              <span class="ml-2 text-xs font-bold text-slate-200">AI Refine (Remove Ghosting)</span>
-            </label>
-          </div>
-        </div>
-
-
+        <label class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
+          <input type="checkbox" v-model="advanced" class="w-3.5 h-3.5 rounded" />
+          <span>Advanced: reposition target box</span>
+        </label>
       </div>
       <input ref="fileInput" type="file" accept="video/*" class="hidden" aria-label="Video file input" @change="onChange" />
     </div>
@@ -343,28 +357,83 @@ function reset() {
       </button>
     </div>
 
-    <!-- Done (Clean Side-by-Side & Actions) -->
+    <!-- Done (Result Card) -->
     <div v-else class="text-left animate-fade-in">
       <div class="flex flex-col lg:flex-row gap-3.5 sm:gap-5">
-        <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 min-w-0">
-          <div class="neu-card rounded-lg overflow-hidden">
-            <div class="px-2.5 py-1 border-b border-white/5 font-bold text-[10px] text-slate-300 bg-white/2">Original</div>
-            <div class="p-1.5 checker flex justify-center">
-              <video :src="originalUrl" controls playsinline class="max-h-48 sm:max-h-56 w-full object-contain rounded"></video>
-            </div>
-          </div>
-          <div class="neu-card rounded-lg overflow-hidden border-neon-cyan/20">
-            <div class="bg-neon-cyan/5 px-2.5 py-1 border-b border-neon-cyan/10 flex items-center justify-between">
-              <div class="flex items-center gap-1">
-                <iconify-icon icon="ph:check-circle-fill" width="14" class="text-neon-cyan"></iconify-icon>
-                <span class="font-bold text-neon-cyan text-[10px]">Cleaned</span>
+        <div class="flex-1 space-y-3 sm:space-y-4 min-w-0">
+          <div class="p-3 sm:p-3.5 neu-card rounded-xl space-y-2.5">
+            <!-- Card Header -->
+            <div class="flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-1.5">
+              <div class="flex items-center gap-2 overflow-hidden">
+                <h3 class="font-bold text-white text-xs truncate max-w-[180px] sm:max-w-xs">{{ fileName }}</h3>
+                <span class="text-[9px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
+                  {{ settings.aiRefine ? '✨ AI Refined' : '✨ Auto' }}
+                </span>
               </div>
-              <span v-if="settings.aiRefine" class="text-[9px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
-                ✨ AI Refined
-              </span>
             </div>
-            <div class="p-1.5 checker flex justify-center">
-              <video :src="resultUrl" controls playsinline class="max-h-48 sm:max-h-56 w-full object-contain rounded"></video>
+
+            <!-- Video Side-by-Side -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+              <!-- Original -->
+              <div class="neu-card rounded-lg overflow-hidden relative">
+                <div class="px-2.5 py-1 border-b border-white/5 flex justify-between items-center bg-white/2">
+                  <span class="font-bold text-slate-300 text-[10px]">Original</span>
+                  <span class="text-[9px] font-mono text-slate-400">{{ displayDimensions }}</span>
+                </div>
+                <div class="p-1.5 checker flex items-center justify-center">
+                  <video :src="originalUrl" controls playsinline class="max-h-48 sm:max-h-56 w-full object-contain rounded"></video>
+                </div>
+              </div>
+
+              <!-- Cleaned -->
+              <div class="neu-card rounded-lg overflow-hidden border-neon-cyan/20">
+                <div class="px-2.5 py-1 border-b border-neon-cyan/10 bg-neon-cyan/5 flex justify-between items-center">
+                  <span class="font-bold text-neon-cyan text-[10px]">Cleaned</span>
+                  <span class="text-[9px] font-mono text-neon-cyan font-bold">100% Lossless</span>
+                </div>
+                <div class="p-1.5 checker flex justify-center">
+                  <video :src="resultUrl" controls playsinline class="max-h-48 sm:max-h-56 w-full object-contain rounded"></video>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controls Row -->
+            <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/5 text-xs">
+              <button
+                @click="backToPreview(); settings.aiRefine = !settings.aiRefine;"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 font-bold text-slate-200 hover:text-neon-cyan rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
+              >
+                <iconify-icon icon="ph:magic-wand-bold" class="text-neon-cyan" width="13"></iconify-icon>
+                <span>{{ settings.aiRefine ? 'Disable Refine' : 'AI Refine' }}</span>
+              </button>
+
+              <div class="flex-1"></div>
+
+              <button
+                @click="download"
+                class="btn-micro-pop flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-neon-cyan hover:bg-neon-cyan/90 rounded-lg transition-all min-h-[34px]"
+              >
+                <iconify-icon icon="ph:download-simple-bold" width="13"></iconify-icon>
+                <span>Download</span>
+              </button>
+
+              <button
+                v-if="canShare"
+                @click="shareVideo"
+                class="btn-micro-pop neu-pill p-1.5 text-slate-200 hover:text-neon-green rounded-lg transition-all flex items-center justify-center min-w-[34px] min-h-[34px]"
+                title="Share"
+              >
+                <iconify-icon icon="ph:share-network-bold" width="14"></iconify-icon>
+              </button>
+
+              <button
+                @click="openDonate"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-neon-pink rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
+                title="Support this project"
+              >
+                <iconify-icon icon="ph:heart-bold" width="13" class="text-neon-pink"></iconify-icon>
+                <span>Donate</span>
+              </button>
             </div>
           </div>
         </div>
@@ -373,15 +442,23 @@ function reset() {
         <div class="hidden lg:block w-56 flex-shrink-0">
           <div class="neu-card rounded-xl p-3.5 sticky top-20 space-y-2.5">
             <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Actions</h2>
-
-            <div v-if="!settings.aiRefine" class="p-2 rounded-lg bg-neon-purple/5 border border-neon-purple/10 space-y-1.5">
-               <p class="text-[10px] text-slate-400 font-medium leading-tight">Ghosting artifacts visible? Try enabling AI Refine and re-exporting.</p>
-               <button @click="backToPreview(); settings.aiRefine = true;" class="w-full py-1.5 rounded-lg border border-neon-purple/30 text-[10px] font-bold text-neon-purple hover:bg-neon-purple/10 transition-all">
-                 Enable AI Refine
-               </button>
-            </div>
-
             <button @click="download" class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all">
+              <div class="flex items-center justify-center gap-1.5">
+                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
+              </div>
+            </button>
+            <button @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+              <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-neon-purple"></iconify-icon>
+              <span>Adjust &amp; re-run</span>
+            </button>
+            <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
+              <span>{{ t('processAnother') }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
               <div class="flex items-center justify-center gap-1.5">
                 <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
               </div>
