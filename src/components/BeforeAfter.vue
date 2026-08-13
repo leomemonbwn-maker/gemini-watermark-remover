@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import PixelMagnifier from './PixelMagnifier.vue';
 
 // Public assets — referenced as runtime strings so Vite leaves them in /public.
 const beforeSrc = '/assets/before.png';
@@ -9,6 +10,7 @@ const pos = ref(50); // percentage revealed of the "after" image
 const dragging = ref(false);
 const container = ref(null);
 const available = ref(true); // hide the showcase if the images aren't present
+const inspectMode = ref(false); // toggle between slider and 4x loupe
 
 function setFromClientX(clientX) {
   const el = container.value;
@@ -19,11 +21,12 @@ function setFromClientX(clientX) {
 }
 
 function onPointerDown(e) {
+  if (inspectMode.value) return;
   dragging.value = true;
   setFromClientX(e.clientX);
 }
 function onPointerMove(e) {
-  if (!dragging.value) return;
+  if (inspectMode.value || !dragging.value) return;
   setFromClientX(e.clientX);
 }
 function onPointerUp() {
@@ -34,7 +37,47 @@ function onPointerUp() {
 <template>
   <figure v-show="available" class="max-w-xl mx-auto my-2 sm:my-4 select-none">
     <div class="p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl neu-card shadow-neu-raised">
+      <!-- Top Action Bar for Mode Switch -->
+      <div class="flex items-center justify-between px-2 py-1.5 mb-1.5">
+        <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+          <iconify-icon icon="ph:sparkle-bold" class="text-neon-cyan"></iconify-icon>
+          Lossless Proof
+        </span>
+        <button
+          @click="inspectMode = !inspectMode"
+          :class="[
+            'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all',
+            inspectMode
+              ? 'bg-neon-cyan text-slate-900 shadow-[0_0_10px_rgba(0,240,255,0.4)]'
+              : 'neu-pill text-slate-300 hover:text-neon-cyan',
+          ]"
+        >
+          <iconify-icon :icon="inspectMode ? 'ph:arrows-left-right-bold' : 'ph:magnifying-glass-plus-bold'" width="13"></iconify-icon>
+          {{ inspectMode ? 'Switch to Slider' : '🔍 400% Zoom Loupe' }}
+        </button>
+      </div>
+
+      <!-- Inspect Loupe Mode -->
+      <div v-if="inspectMode" class="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden shadow-neu-inset border border-neon-cyan/20 flex items-center justify-center">
+        <PixelMagnifier :image-src="afterSrc" :zoom="4" :lens-size="140" class="w-full h-full flex items-center justify-center">
+          <img
+            :src="afterSrc"
+            alt="Gemini AI clean image inspection"
+            class="w-full h-full object-cover"
+            draggable="false"
+          />
+        </PixelMagnifier>
+        <span class="absolute top-2.5 left-2.5 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-slate-900/90 text-neon-cyan border border-neon-cyan/30">
+          Clean (Hover to Zoom)
+        </span>
+        <span class="absolute bottom-2.5 right-2.5 text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-black/80 text-slate-300 pointer-events-none">
+          Double-click for 8×
+        </span>
+      </div>
+
+      <!-- Before/After Slider Mode -->
       <div
+        v-else
         ref="container"
         class="group relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden shadow-neu-inset border border-white/5 cursor-ew-resize touch-none"
         @pointerdown="onPointerDown"
@@ -86,7 +129,7 @@ function onPointerUp() {
       </div>
     </div>
     <figcaption class="mt-2.5 text-[11px] sm:text-xs text-slate-400 font-medium text-center font-mono">
-      Drag slider — clean unblending with 100% pixel fidelity.
+      {{ inspectMode ? 'Hover over bottom-right corner to inspect 400% zoom pixel fidelity.' : 'Drag slider — clean unblending with 100% pixel fidelity.' }}
     </figcaption>
   </figure>
 </template>

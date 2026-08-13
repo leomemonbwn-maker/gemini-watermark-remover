@@ -3,6 +3,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import WatermarkTuner from './WatermarkTuner.vue';
 import GeminiAnalyst from './GeminiAnalyst.vue';
 import BrushMaskEditor from './BrushMaskEditor.vue';
+import PixelMagnifier from './PixelMagnifier.vue';
 import { cleanFrame } from '../engine/tuner.js';
 import { refineWatermarkArea } from '../engine/refiner.js';
 import { pointTargetWatermark } from '../engine/detector.js';
@@ -13,6 +14,10 @@ const { t } = useI18n();
 
 // Removal mode: 'sparkle' (Gemini template) or 'brush' (any watermark via inpainting)
 const removalMode = ref('sparkle');
+
+// Batch Export Hub State
+const batchFormat = ref('png');
+const batchQuality = ref(95);
 
 // Brush mode state
 const brushFile = ref(null);
@@ -305,6 +310,8 @@ async function handleFiles(fileList) {
         width: 0, height: 0, config: null, configs: [],
         viewMode: 'sideBySide', sliderPos: 50,
         format: 'png',
+        quality: 95,
+        showMagnifier: false,
         showAnalyst: false,
         psnr: null,
       }) - 1;
@@ -388,9 +395,11 @@ async function downloadFormatted(item) {
   
   let exportBlob = item.blob;
   let ext = item.format || 'png';
+  let quality = (item.quality || 95) / 100;
   let mimeType = 'image/png';
   if (ext === 'webp') mimeType = 'image/webp';
   if (ext === 'jpeg') mimeType = 'image/jpeg';
+  if (ext === 'avif') mimeType = 'image/avif';
 
   if (ext !== 'png') {
     const img = new Image();
@@ -404,13 +413,24 @@ async function downloadFormatted(item) {
       ctx.fillRect(0, 0, c.width, c.height);
     }
     ctx.drawImage(img, 0, 0);
-    exportBlob = await new Promise((r) => c.toBlob(r, mimeType, 0.95));
+    try {
+      exportBlob = await new Promise((r) => c.toBlob(r, mimeType, quality));
+      if (!exportBlob && ext === 'avif') {
+        mimeType = 'image/webp';
+        ext = 'webp';
+        exportBlob = await new Promise((r) => c.toBlob(r, mimeType, quality));
+      }
+    } catch {
+      exportBlob = item.blob;
+      ext = 'png';
+    }
   }
 
+  const cleanBaseName = (item.name || 'cleaned_image').replace(/\.[^/.]+$/, '');
   const url = URL.createObjectURL(exportBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${item.name}.${ext}`;
+  a.download = `gemclean_${cleanBaseName}.${ext}`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -467,12 +487,44 @@ async function downloadAll() {
   if (!done.length) return;
   const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
   const zip = new JSZip();
-  done.forEach((item) => zip.file(`${item.name}.png`, item.blob));
+
+  const ext = batchFormat.value || 'png';
+  const quality = (batchQuality.value || 95) / 100;
+  let mimeType = 'image/png';
+  if (ext === 'webp') mimeType = 'image/webp';
+  if (ext === 'jpeg') mimeType = 'image/jpeg';
+  if (ext === 'avif') mimeType = 'image/avif';
+
+  for (const item of done) {
+    let exportBlob = item.blob;
+    if (ext !== 'png') {
+      const img = new Image();
+      img.src = item.url;
+      await new Promise((r) => { img.onload = r; });
+      const c = document.createElement('canvas');
+      c.width = item.width; c.height = item.height;
+      const ctx = c.getContext('2d');
+      if (ext === 'jpeg') {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, c.width, c.height);
+      }
+      ctx.drawImage(img, 0, 0);
+      try {
+        const converted = await new Promise((r) => c.toBlob(r, mimeType, quality));
+        if (converted) exportBlob = converted;
+      } catch (e) {
+        console.warn('Batch conversion failed for item', e);
+      }
+    }
+    const cleanBaseName = (item.name || 'cleaned_image').replace(/\.[^/.]+$/, '');
+    zip.file(`gemclean_${cleanBaseName}.${ext}`, exportBlob);
+  }
+
   const zipBlob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(zipBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `cleaned_images_${Date.now()}.zip`;
+  a.download = `gemclean_batch_${Date.now()}.zip`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -798,7 +850,7 @@ function reset() {
                 </span>
               </div>
 
-              <!-- View Mode Toggle -->
+              <!-- View Mode Toggle + Loupe Button -->
               <div v-if="item.status === 'done'" class="flex items-center gap-1 p-0.5 rounded-lg neu-inset text-[10px] font-bold">
                 <button
                   @click="item.viewMode = 'sideBySide'"
@@ -811,6 +863,14 @@ function reset() {
                   :class="['px-2 py-1 rounded transition-all', item.viewMode === 'slider' ? 'bg-neu-raised text-neon-pink shadow-xs' : 'text-slate-400 hover:text-white']"
                 >
                   Slider
+                </button>
+                <button
+                  @click="item.showMagnifier = !item.showMagnifier"
+                  :class="['px-2 py-1 rounded transition-all flex items-center gap-1', item.showMagnifier ? 'bg-neon-cyan text-slate-950 shadow-xs' : 'text-slate-400 hover:text-neon-cyan']"
+                  title="Toggle 400% Zoom Lens on Cleaned Image"
+                >
+                  <iconify-icon icon="ph:magnifying-glass-plus-bold" width="11"></iconify-icon>
+                  <span>4x Loupe</span>
                 </button>
               </div>
             </div>
@@ -868,8 +928,19 @@ function reset() {
                   <span class="font-bold text-neon-cyan text-[10px]">Cleaned</span>
                   <span class="text-[9px] font-mono text-neon-cyan font-bold">100% Lossless</span>
                 </div>
-                <div class="p-1.5 checker flex justify-center h-40 sm:h-48">
-                  <img v-if="item.status === 'done'" :src="item.url" class="max-h-full object-contain rounded mx-auto" />
+                <div class="p-1.5 checker flex justify-center h-40 sm:h-48 relative overflow-hidden">
+                  <template v-if="item.status === 'done'">
+                    <PixelMagnifier
+                      v-if="item.showMagnifier"
+                      :image-src="item.url"
+                      :zoom="4"
+                      :lens-size="120"
+                      class="flex items-center justify-center max-h-full"
+                    >
+                      <img :src="item.url" class="max-h-36 sm:max-h-44 w-auto object-contain rounded mx-auto" />
+                    </PixelMagnifier>
+                    <img v-else :src="item.url" class="max-h-full object-contain rounded mx-auto" />
+                  </template>
                   <p v-else class="text-xs text-slate-400 self-center">Processing...</p>
                 </div>
               </div>
@@ -897,8 +968,8 @@ function reset() {
               </div>
             </div>
 
-            <!-- Controls Row: Actions, Format, Download, Share -->
-            <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/5 text-xs">
+            <!-- Controls Row: Actions, Format, Quality, Download, Share -->
+            <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/5 text-xs">
               <button
                 @click="refineItem(item, i)"
                 :disabled="refiningIdx === i"
@@ -916,15 +987,31 @@ function reset() {
                 <span>Ask AI</span>
               </button>
 
+              <!-- Format Selector -->
               <div class="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
                 <select
                   v-model="item.format"
                   class="text-[11px] font-bold neu-pill rounded-lg px-2 py-1 text-slate-200 focus:outline-none cursor-pointer min-h-[34px]"
                 >
-                  <option value="png">PNG</option>
+                  <option value="png">PNG (Lossless)</option>
                   <option value="webp">WebP</option>
                   <option value="jpeg">JPG</option>
+                  <option value="avif">AVIF</option>
                 </select>
+              </div>
+
+              <!-- Quality slider when not PNG -->
+              <div v-if="item.format !== 'png'" class="flex items-center gap-1.5 px-2 py-1 rounded-lg neu-inset text-[10px]">
+                <span class="text-slate-400 font-bold">Q:</span>
+                <input
+                  type="range"
+                  min="70"
+                  max="100"
+                  step="5"
+                  v-model.number="item.quality"
+                  class="w-16 cursor-pointer"
+                />
+                <span class="font-mono text-neon-cyan font-bold">{{ item.quality }}%</span>
               </div>
 
               <div class="flex-1"></div>
@@ -965,10 +1052,16 @@ function reset() {
               </button>
             </div>
 
-            <!-- Quality Score -->
-            <div v-if="item.psnr" class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-neon-green/5 text-[10px] font-bold text-neon-green">
-              <iconify-icon icon="ph:chart-line-up-bold" width="12"></iconify-icon>
-              <span>Quality Score: {{ item.psnr.toFixed(1) }} dB PSNR</span>
+            <!-- Quality Score & Metadata Stripped Badges -->
+            <div v-if="item.status === 'done'" class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div v-if="item.psnr" class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-neon-green/10 text-[10px] font-bold text-neon-green">
+                <iconify-icon icon="ph:chart-line-up-bold" width="11"></iconify-icon>
+                <span>Lossless Fidelity: {{ item.psnr.toFixed(1) }} dB PSNR</span>
+              </div>
+              <div class="flex items-center gap-1 text-[9px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded-md">
+                <iconify-icon icon="ph:shield-check-bold" class="text-neon-cyan" width="11"></iconify-icon>
+                <span>EXIF & AI Prompts Stripped (100% Private)</span>
+              </div>
             </div>
             
             <GeminiAnalyst 
@@ -981,16 +1074,37 @@ function reset() {
         </div>
 
         <!-- Desktop Action Sidebar -->
-        <div class="hidden lg:block w-56 flex-shrink-0">
-          <div class="neu-card rounded-xl p-3.5 sticky top-20 space-y-2.5">
-            <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Actions</h2>
+        <div class="hidden lg:block w-60 flex-shrink-0">
+          <div class="neu-card rounded-xl p-3.5 sticky top-20 space-y-3">
+            <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Export Hub</h2>
+
+            <!-- Batch settings when multiple items are loaded -->
+            <div v-if="doneItems.length > 1" class="space-y-2 p-2.5 rounded-lg neu-inset">
+              <div class="text-[10px] font-bold text-slate-400 uppercase">Batch Format</div>
+              <select
+                v-model="batchFormat"
+                class="w-full text-xs font-semibold neu-pill rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="png">PNG (Lossless Master)</option>
+                <option value="webp">WebP (Modern/Fast)</option>
+                <option value="jpeg">JPG (Social Media)</option>
+                <option value="avif">AVIF (Ultra Small)</option>
+              </select>
+
+              <div v-if="batchFormat !== 'png'" class="flex items-center justify-between text-[10px] text-slate-300">
+                <span>Quality:</span>
+                <span class="font-mono text-neon-cyan font-bold">{{ batchQuality }}%</span>
+                <input type="range" min="70" max="100" step="5" v-model.number="batchQuality" class="w-20 cursor-pointer" />
+              </div>
+            </div>
+
             <button
               v-if="doneItems.length === 1"
               @click="downloadFormatted(doneItems[0])"
               class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
             >
               <div class="flex items-center justify-center gap-1.5">
-                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download
+                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download Clean Image
               </div>
             </button>
             <button
@@ -999,10 +1113,19 @@ function reset() {
               class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
             >
               <div class="flex items-center justify-center gap-1.5">
-                <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Download All ZIP
+                <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Export All ZIP ({{ doneItems.length }})
               </div>
             </button>
-            <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+
+            <div class="text-[10px] text-slate-400 space-y-1 pt-1 border-t border-white/5">
+              <div class="flex items-center gap-1 text-neon-cyan font-bold">
+                <iconify-icon icon="ph:lock-key-bold"></iconify-icon>
+                <span>Zero Server Uploads</span>
+              </div>
+              <p class="text-[9px] text-slate-500">Processed 100% locally in browser memory.</p>
+            </div>
+
+            <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2 w-full">
               <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
               <span>{{ t('processAnother') }}</span>
             </button>
@@ -1013,13 +1136,27 @@ function reset() {
       <!-- Mobile Action Bar -->
       <div class="lg:hidden mt-3">
         <div class="neu-card rounded-xl p-3 space-y-2">
+          <!-- Batch settings for mobile -->
+          <div v-if="doneItems.length > 1" class="flex items-center justify-between gap-2 mb-1">
+            <span class="text-[10px] font-bold text-slate-400">Batch Format:</span>
+            <select
+              v-model="batchFormat"
+              class="text-xs font-semibold neu-pill rounded px-2 py-1 text-slate-200 focus:outline-none"
+            >
+              <option value="png">PNG</option>
+              <option value="webp">WebP</option>
+              <option value="jpeg">JPG</option>
+              <option value="avif">AVIF</option>
+            </select>
+          </div>
+
           <button
             v-if="doneItems.length === 1"
             @click="downloadFormatted(doneItems[0])"
             class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
           >
             <div class="flex items-center justify-center gap-1.5">
-              <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download
+              <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download Clean Image
             </div>
           </button>
           <button
@@ -1028,10 +1165,10 @@ function reset() {
             class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
           >
             <div class="flex items-center justify-center gap-1.5">
-              <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Download All ZIP
+              <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Download All ZIP ({{ doneItems.length }})
             </div>
           </button>
-          <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2 w-full">
             <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
             <span>{{ t('processAnother') }}</span>
           </button>

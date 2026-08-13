@@ -13,14 +13,23 @@ const emit = defineEmits(['result', 'cancel']);
 const canvasRef = ref(null);
 const overlayRef = ref(null);
 const containerRef = ref(null);
+const viewportRef = ref(null);
 
 // Tool state
-const tool = ref('brush');           // 'brush' | 'eraser'
+const tool = ref('brush');           // 'brush' | 'eraser' | 'pan'
 const brushSize = ref(25);
 const method = ref('telea');         // 'telea' | 'patchmatch'
 const isProcessing = ref(false);
 const autoDetecting = ref(false);
 const detectedRegions = ref([]);
+
+// Zoom & Pan state
+const zoom = ref(1);                 // 1 to 5 (100% to 500%)
+const panX = ref(0);
+const panY = ref(0);
+const isPanning = ref(false);
+const spacePressed = ref(false);
+let startPanX = 0, startPanY = 0;
 
 // Mask state
 const maskCanvas = document.createElement('canvas');
@@ -28,9 +37,10 @@ let maskCtx = null;
 let isDrawing = false;
 let lastX = -1, lastY = -1;
 
-// Undo stack
+// Undo & Redo stacks
 const undoStack = ref([]);
-const maxUndo = 20;
+const redoStack = ref([]);
+const maxUndo = 25;
 
 // Display scaling
 const displayScale = ref(1);
@@ -50,6 +60,8 @@ function initCanvas() {
   maskCanvas.height = height;
   maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
   maskCtx.clearRect(0, 0, width, height);
+  undoStack.value = [];
+  redoStack.value = [];
   renderOverlay();
 }
 
@@ -67,14 +79,14 @@ function renderOverlay() {
   const tmpCtx = tmpCanvas.getContext('2d');
   tmpCtx.drawImage(maskCanvas, 0, 0);
 
-  // Tint the mask red
+  // Tint the mask neon pink
   const maskData = tmpCtx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height);
   for (let i = 0; i < maskData.data.length; i += 4) {
     if (maskData.data[i + 3] > 0) {
       maskData.data[i] = 255;     // R
       maskData.data[i + 1] = 45;  // G
       maskData.data[i + 2] = 149; // B (neon pink)
-      maskData.data[i + 3] = 120; // Semi-transparent
+      maskData.data[i + 3] = 135; // Semi-transparent
     }
   }
   tmpCtx.putImageData(maskData, 0, 0);
@@ -96,6 +108,8 @@ function getImageCoords(e) {
   const overlay = overlayRef.value;
   if (!overlay) return null;
   const rect = overlay.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return null;
+  
   const scaleX = maskCanvas.width / rect.width;
   const scaleY = maskCanvas.height / rect.height;
 
@@ -109,8 +123,8 @@ function getImageCoords(e) {
   }
 
   return {
-    x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top) * scaleY,
+    x: Math.max(0, Math.min(maskCanvas.width, (clientX - rect.left) * scaleX)),
+    y: Math.max(0, Math.min(maskCanvas.height, (clientY - rect.top) * scaleY)),
   };
 }
 
@@ -118,12 +132,30 @@ function saveMaskState() {
   const state = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
   undoStack.value.push(new Uint8ClampedArray(state.data));
   if (undoStack.value.length > maxUndo) undoStack.value.shift();
+  // Clear redo stack on new action
+  redoStack.value = [];
 }
 
 function undo() {
   if (undoStack.value.length === 0) return;
-  const state = undoStack.value.pop();
-  const imgData = new ImageData(state, maskCanvas.width, maskCanvas.height);
+  // Save current to redo stack
+  const current = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+  redoStack.value.push(new Uint8ClampedArray(current.data));
+
+  const prevState = undoStack.value.pop();
+  const imgData = new ImageData(prevState, maskCanvas.width, maskCanvas.height);
+  maskCtx.putImageData(imgData, 0, 0);
+  renderOverlay();
+}
+
+function redo() {
+  if (redoStack.value.length === 0) return;
+  // Save current to undo stack
+  const current = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+  undoStack.value.push(new Uint8ClampedArray(current.data));
+
+  const nextState = redoStack.value.pop();
+  const imgData = new ImageData(nextState, maskCanvas.width, maskCanvas.height);
   maskCtx.putImageData(imgData, 0, 0);
   renderOverlay();
 }
@@ -161,7 +193,19 @@ function drawStroke(x, y) {
   renderOverlay();
 }
 
+// ── Pointer & Drag Handlers ──────────────────────────────────────────────────
+
 function onPointerDown(e) {
+  if (e.button === 1 || tool.value === 'pan' || spacePressed.value) {
+    // Pan mode start
+    isPanning.value = true;
+    startPanX = e.clientX - panX.value;
+    startPanY = e.clientY - panY.value;
+    e.preventDefault();
+    return;
+  }
+
+  if (e.button !== 0 && !e.touches) return; // Left click or touch only
   e.preventDefault();
   saveMaskState();
   isDrawing = true;
@@ -174,6 +218,13 @@ function onPointerDown(e) {
 }
 
 function onPointerMove(e) {
+  if (isPanning.value) {
+    panX.value = e.clientX - startPanX;
+    panY.value = e.clientY - startPanY;
+    e.preventDefault();
+    return;
+  }
+
   if (!isDrawing) return;
   e.preventDefault();
   const coords = getImageCoords(e);
@@ -181,10 +232,51 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  if (isPanning.value) {
+    isPanning.value = false;
+    return;
+  }
   if (!isDrawing) return;
   isDrawing = false;
   lastX = -1;
   lastY = -1;
+}
+
+// ── Zoom Controls ────────────────────────────────────────────────────────────
+
+function setZoom(level) {
+  zoom.value = Math.max(1, Math.min(5, Math.round(level * 10) / 10));
+  if (zoom.value === 1) {
+    panX.value = 0;
+    panY.value = 0;
+  }
+}
+
+function zoomIn() {
+  setZoom(zoom.value + 0.5);
+}
+
+function zoomOut() {
+  setZoom(zoom.value - 0.5);
+}
+
+function resetZoom() {
+  zoom.value = 1;
+  panX.value = 0;
+  panY.value = 0;
+}
+
+function onWheel(e) {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) {
+    // Pinch / Ctrl + Wheel zoom
+    const delta = e.deltaY < 0 ? 0.25 : -0.25;
+    setZoom(zoom.value + delta);
+  } else {
+    // 2-finger scroll or wheel pan
+    panX.value -= e.deltaX * 0.8;
+    panY.value -= e.deltaY * 0.8;
+  }
 }
 
 function clearMask() {
@@ -202,7 +294,6 @@ async function autoDetect() {
     await new Promise(r => setTimeout(r, 50)); // let UI update
 
     const { width, height } = props.imageData;
-    // Create a fresh ImageData copy for detection
     const detectData = new ImageData(
       new Uint8ClampedArray(props.imageData.data),
       width, height,
@@ -212,7 +303,6 @@ async function autoDetect() {
     detectedRegions.value = regions;
 
     if (regions.length > 0) {
-      // Paint detected regions into mask
       saveMaskState();
       const regionMask = regionsToMask(width, height, regions, 6);
       maskCtx.globalCompositeOperation = 'source-over';
@@ -246,7 +336,7 @@ async function processInpaint() {
     const maskImgData = maskCtx.getImageData(0, 0, width, height);
     const maskArr = new Uint8Array(width * height);
     for (let i = 0; i < maskArr.length; i++) {
-      maskArr[i] = maskImgData.data[i * 4 + 3] > 50 ? 255 : 0; // use alpha channel
+      maskArr[i] = maskImgData.data[i * 4 + 3] > 50 ? 255 : 0;
     }
 
     // Copy image data
@@ -280,8 +370,6 @@ async function processInpaint() {
   }
 }
 
-// ── Get mask data for video processing ──────────────────────────────────────
-
 function getMaskArray() {
   const { width, height } = props.imageData;
   const maskImgData = maskCtx.getImageData(0, 0, width, height);
@@ -293,6 +381,46 @@ function getMaskArray() {
 }
 
 defineExpose({ getMaskArray, processInpaint });
+
+// ── Keyboard Shortcuts ───────────────────────────────────────────────────────
+
+function handleKeyDown(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+  if (e.code === 'Space' && !spacePressed.value) {
+    spacePressed.value = true;
+    e.preventDefault();
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    if (e.shiftKey) {
+      redo();
+    } else {
+      undo();
+    }
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+    e.preventDefault();
+    redo();
+  } else if (e.key === 'b' || e.key === 'B') {
+    tool.value = 'brush';
+  } else if (e.key === 'e' || e.key === 'E') {
+    tool.value = 'eraser';
+  } else if (e.key === 'h' || e.key === 'H') {
+    tool.value = 'pan';
+  } else if (e.key === '[') {
+    brushSize.value = Math.max(3, brushSize.value - 5);
+  } else if (e.key === ']') {
+    brushSize.value = Math.min(100, brushSize.value + 5);
+  } else if (e.key === '0') {
+    resetZoom();
+  }
+}
+
+function handleKeyUp(e) {
+  if (e.code === 'Space') {
+    spacePressed.value = false;
+    isPanning.value = false;
+  }
+}
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -315,7 +443,6 @@ function updateDisplaySize() {
   overlay.width = dw;
   overlay.height = dh;
 
-  // Draw background image
   const img = new Image();
   img.onload = () => {
     bgCanvas.getContext('2d').drawImage(img, 0, 0, dw, dh);
@@ -329,10 +456,14 @@ onMounted(async () => {
   initCanvas();
   updateDisplaySize();
   window.addEventListener('resize', updateDisplaySize);
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateDisplaySize);
+  window.removeEventListener('keydown', handleKeyDown);
+  window.removeEventListener('keyup', handleKeyUp);
 });
 
 watch(() => props.imageData, () => {
@@ -342,117 +473,187 @@ watch(() => props.imageData, () => {
 </script>
 
 <template>
-  <div ref="containerRef" class="brush-mask-editor">
-    <!-- Toolbar -->
-    <div class="flex flex-wrap items-center gap-2 mb-3">
-      <!-- Tool Buttons -->
-      <div class="p-0.5 rounded-lg neu-inset inline-flex gap-0.5">
-        <button
-          @click="tool = 'brush'"
-          :class="[
-            'flex items-center gap-1 px-3 py-1.5 rounded-md font-bold text-xs transition-all',
-            tool === 'brush'
-              ? 'bg-neon-pink/20 text-neon-pink border border-neon-pink/30'
-              : 'text-slate-400 hover:text-white',
-          ]"
-        >
-          <iconify-icon icon="ph:paint-brush-bold" width="14"></iconify-icon>
-          Brush
-        </button>
-        <button
-          @click="tool = 'eraser'"
-          :class="[
-            'flex items-center gap-1 px-3 py-1.5 rounded-md font-bold text-xs transition-all',
-            tool === 'eraser'
-              ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30'
-              : 'text-slate-400 hover:text-white',
-          ]"
-        >
-          <iconify-icon icon="ph:eraser-bold" width="14"></iconify-icon>
-          Eraser
-        </button>
+  <div ref="containerRef" class="brush-mask-editor select-none">
+    <!-- Main Toolbar -->
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3 bg-white/2 p-2 rounded-xl border border-white/5">
+      <!-- Tool Buttons (Brush / Eraser / Hand) -->
+      <div class="flex items-center gap-1">
+        <div class="p-0.5 rounded-lg neu-inset inline-flex gap-0.5">
+          <button
+            @click="tool = 'brush'"
+            :class="[
+              'flex items-center gap-1 px-2.5 py-1.5 rounded-md font-bold text-xs transition-all',
+              tool === 'brush'
+                ? 'bg-neon-pink/20 text-neon-pink border border-neon-pink/30'
+                : 'text-slate-400 hover:text-white',
+            ]"
+            title="Brush Tool (Shortcut: B)"
+          >
+            <iconify-icon icon="ph:paint-brush-bold" width="13"></iconify-icon>
+            Brush
+          </button>
+          <button
+            @click="tool = 'eraser'"
+            :class="[
+              'flex items-center gap-1 px-2.5 py-1.5 rounded-md font-bold text-xs transition-all',
+              tool === 'eraser'
+                ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30'
+                : 'text-slate-400 hover:text-white',
+            ]"
+            title="Eraser Tool (Shortcut: E)"
+          >
+            <iconify-icon icon="ph:eraser-bold" width="13"></iconify-icon>
+            Eraser
+          </button>
+          <button
+            @click="tool = 'pan'"
+            :class="[
+              'flex items-center gap-1 px-2.5 py-1.5 rounded-md font-bold text-xs transition-all',
+              tool === 'pan'
+                ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30'
+                : 'text-slate-400 hover:text-white',
+            ]"
+            title="Hand / Pan Tool (Shortcut: H or Hold Space)"
+          >
+            <iconify-icon icon="ph:hand-grab-bold" width="13"></iconify-icon>
+            Pan
+          </button>
+        </div>
+
+        <!-- Brush Size Slider -->
+        <div class="flex items-center gap-1 ml-1.5 px-2 py-1 rounded-lg neu-inset">
+          <span class="text-[10px] font-bold text-slate-500 uppercase">Size</span>
+          <input
+            type="range" min="3" max="100" step="1"
+            v-model.number="brushSize"
+            class="w-16 sm:w-20 cursor-pointer"
+          />
+          <span class="text-xs font-mono font-bold text-slate-300 w-7 text-right">{{ brushSize }}px</span>
+        </div>
       </div>
 
-      <!-- Brush Size -->
-      <div class="flex items-center gap-1.5 ml-1">
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Size</span>
-        <input
-          type="range" min="3" max="100" step="1"
-          v-model.number="brushSize"
-          class="w-20 cursor-pointer"
-        />
-        <span class="text-xs font-mono font-bold text-slate-300 w-8 text-right">{{ brushSize }}px</span>
-      </div>
+      <!-- Zoom & History Actions -->
+      <div class="flex items-center gap-1.5">
+        <!-- Zoom Controls -->
+        <div class="flex items-center gap-0.5 p-0.5 rounded-lg neu-inset">
+          <button
+            @click="zoomOut"
+            :disabled="zoom <= 1"
+            class="p-1.5 rounded text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            title="Zoom Out (-)"
+          >
+            <iconify-icon icon="ph:minus-bold" width="12"></iconify-icon>
+          </button>
+          <button
+            @click="resetZoom"
+            class="px-1.5 py-0.5 text-[10px] font-mono font-bold text-neon-cyan hover:underline"
+            title="Reset Zoom to 100% (0)"
+          >
+            {{ Math.round(zoom * 100) }}%
+          </button>
+          <button
+            @click="zoomIn"
+            :disabled="zoom >= 5"
+            class="p-1.5 rounded text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            title="Zoom In (+)"
+          >
+            <iconify-icon icon="ph:plus-bold" width="12"></iconify-icon>
+          </button>
+        </div>
 
-      <!-- Actions -->
-      <div class="flex items-center gap-1.5 ml-auto">
+        <!-- Undo / Redo / Clear -->
+        <div class="flex items-center gap-1">
+          <button
+            @click="undo"
+            :disabled="undoStack.length === 0"
+            class="p-1.5 rounded-lg neu-pill text-slate-400 hover:text-neon-cyan disabled:opacity-30 transition-colors"
+            title="Undo (Ctrl+Z)"
+          >
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="14"></iconify-icon>
+          </button>
+          <button
+            @click="redo"
+            :disabled="redoStack.length === 0"
+            class="p-1.5 rounded-lg neu-pill text-slate-400 hover:text-neon-cyan disabled:opacity-30 transition-colors"
+            title="Redo (Ctrl+Y)"
+          >
+            <iconify-icon icon="ph:arrow-clockwise-bold" width="14"></iconify-icon>
+          </button>
+          <button
+            @click="clearMask"
+            class="p-1.5 rounded-lg neu-pill text-slate-400 hover:text-red-400 transition-colors"
+            title="Clear Entire Mask"
+          >
+            <iconify-icon icon="ph:trash-bold" width="14"></iconify-icon>
+          </button>
+        </div>
+
+        <!-- Auto Detect Button -->
         <button
           @click="autoDetect"
           :disabled="autoDetecting"
           class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg neu-pill text-[11px] font-bold text-neon-purple hover:text-neon-pink transition-colors disabled:opacity-50"
-          title="Auto-detect text watermarks"
+          title="Auto-detect text watermarks using OCR heuristic"
         >
-          <iconify-icon :icon="autoDetecting ? 'ph:spinner-gap-bold' : 'ph:magic-wand-bold'" width="14"
+          <iconify-icon :icon="autoDetecting ? 'ph:spinner-gap-bold' : 'ph:magic-wand-bold'" width="13"
             :class="autoDetecting ? 'animate-spin' : ''"></iconify-icon>
-          {{ autoDetecting ? 'Scanning...' : 'Auto Detect' }}
-        </button>
-        <button
-          @click="undo"
-          :disabled="undoStack.length === 0"
-          class="flex items-center gap-1 px-2 py-1.5 rounded-lg neu-pill text-[11px] font-bold text-slate-400 hover:text-neon-cyan transition-colors disabled:opacity-30"
-          title="Undo"
-        >
-          <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="14"></iconify-icon>
-        </button>
-        <button
-          @click="clearMask"
-          class="flex items-center gap-1 px-2 py-1.5 rounded-lg neu-pill text-[11px] font-bold text-slate-400 hover:text-red-400 transition-colors"
-          title="Clear mask"
-        >
-          <iconify-icon icon="ph:trash-bold" width="14"></iconify-icon>
+          <span class="hidden sm:inline">{{ autoDetecting ? 'Scanning...' : 'Auto Detect' }}</span>
         </button>
       </div>
     </div>
 
-    <!-- Canvas Area -->
-    <div class="relative inline-block rounded-xl overflow-hidden border border-white/10 bg-black/20 shadow-lg mx-auto w-full">
-      <canvas ref="canvasRef" class="block w-full h-auto"></canvas>
-      <canvas
-        ref="overlayRef"
-        class="absolute inset-0 w-full h-full cursor-crosshair touch-none"
-        :style="{ cursor: tool === 'eraser' ? 'cell' : 'crosshair' }"
-        @pointerdown="onPointerDown"
-        @pointermove="onPointerMove"
-        @pointerup="onPointerUp"
-        @pointercancel="onPointerUp"
-        @pointerleave="onPointerUp"
-        @touchstart.prevent="onPointerDown"
-        @touchmove.prevent="onPointerMove"
-        @touchend.prevent="onPointerUp"
-      ></canvas>
-
-      <!-- Brush cursor preview -->
+    <!-- Canvas Viewport with Zoom / Pan Support -->
+    <div
+      ref="viewportRef"
+      class="relative w-full h-[320px] sm:h-[420px] rounded-xl overflow-hidden border border-white/10 bg-black/40 shadow-inner flex items-center justify-center cursor-default touch-none"
+      @wheel="onWheel"
+    >
       <div
-        v-if="!isProcessing"
-        class="absolute pointer-events-none border-2 rounded-full"
-        :class="tool === 'brush' ? 'border-neon-pink/60' : 'border-neon-cyan/60'"
+        class="relative transition-transform duration-75 origin-center inline-block shadow-2xl"
         :style="{
-          width: (brushSize * displayScale) + 'px',
-          height: (brushSize * displayScale) + 'px',
-          display: 'none',
+          transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+          cursor: tool === 'pan' || spacePressed ? 'grab' : (tool === 'eraser' ? 'cell' : 'crosshair'),
         }"
-      ></div>
+      >
+        <canvas ref="canvasRef" class="block rounded shadow-lg"></canvas>
+        <canvas
+          ref="overlayRef"
+          class="absolute inset-0 w-full h-full touch-none"
+          @pointerdown="onPointerDown"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+          @pointercancel="onPointerUp"
+          @pointerleave="onPointerUp"
+          @touchstart.prevent="onPointerDown"
+          @touchmove.prevent="onPointerMove"
+          @touchend.prevent="onPointerUp"
+        ></canvas>
+      </div>
+
+      <!-- Zoom indicator pill in viewport -->
+      <div v-if="zoom > 1 || panX !== 0 || panY !== 0" class="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/80 text-[10px] font-mono text-neon-cyan border border-white/10 backdrop-blur-sm pointer-events-none">
+        Zoom: {{ Math.round(zoom * 100) }}% · Pan: ({{ Math.round(panX) }}, {{ Math.round(panY) }})
+      </div>
+      <button
+        v-if="zoom > 1 || panX !== 0 || panY !== 0"
+        @click="resetZoom"
+        class="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/80 hover:bg-neon-cyan hover:text-slate-900 text-[10px] font-bold text-slate-300 border border-white/10 transition-colors"
+      >
+        Reset View (0)
+      </button>
     </div>
 
-    <p class="text-[11px] text-slate-400 mt-2 text-center font-medium">
+    <!-- Shortcut helper guide -->
+    <p class="text-[10px] sm:text-[11px] text-slate-400 mt-2 text-center font-medium">
       <iconify-icon icon="ph:paint-brush-bold" class="text-neon-pink align-middle mr-1"></iconify-icon>
-      Paint over the watermark, then click <strong class="text-neon-cyan">Remove</strong> to inpaint.
+      Paint over any watermark/logo.
+      <span class="text-slate-500 ml-1">Shortcuts: <kbd class="px-1 py-0.5 rounded bg-white/5 text-[9px] font-mono">B</kbd> Brush, <kbd class="px-1 py-0.5 rounded bg-white/5 text-[9px] font-mono">E</kbd> Eraser, <kbd class="px-1 py-0.5 rounded bg-white/5 text-[9px] font-mono">Space</kbd> Pan, <kbd class="px-1 py-0.5 rounded bg-white/5 text-[9px] font-mono">Ctrl+Z</kbd> Undo, <kbd class="px-1 py-0.5 rounded bg-white/5 text-[9px] font-mono">[ / ]</kbd> Size</span>
     </p>
 
     <!-- Method + Process -->
     <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
       <div class="flex items-center gap-2">
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Method</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Inpaint Method</span>
         <div class="p-0.5 rounded-lg neu-inset inline-flex gap-0.5">
           <button
             @click="method = 'telea'"
@@ -463,7 +664,7 @@ watch(() => props.imageData, () => {
                 : 'text-slate-400 hover:text-white',
             ]"
           >
-            ⚡ Fast
+            ⚡ Fast (Telea)
           </button>
           <button
             @click="method = 'patchmatch'"
@@ -474,7 +675,7 @@ watch(() => props.imageData, () => {
                 : 'text-slate-400 hover:text-white',
             ]"
           >
-            🎨 Quality
+            🎨 High-Texture (PatchMatch)
           </button>
         </div>
       </div>
@@ -498,7 +699,7 @@ watch(() => props.imageData, () => {
               width="16"
               :class="isProcessing ? 'animate-spin' : ''"
             ></iconify-icon>
-            {{ isProcessing ? 'Processing...' : 'Remove Watermark' }}
+            {{ isProcessing ? 'Inpainting...' : 'Remove Watermark' }}
           </div>
         </button>
       </div>
