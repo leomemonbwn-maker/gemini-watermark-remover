@@ -29,6 +29,7 @@ const advanced = ref(false);
 const fileName = ref('');
 const displayDimensions = ref('');
 
+
 // Watermark position presets for Veo videos
 const VIDEO_PRESETS = [
   {
@@ -301,13 +302,13 @@ function reset() {
               Reset sliders
             </button>
 
-            <label class="flex items-center gap-2 px-1 py-1 cursor-pointer group">
-              <input type="checkbox" v-model="settings.aiRefine" class="w-3.5 h-3.5 rounded border-white/10 bg-white/5 text-neon-cyan focus:ring-neon-cyan" />
-              <div class="flex flex-col">
-                <span class="text-[11px] font-bold text-slate-200 group-hover:text-neon-cyan transition-colors">AI Refine (Perfect)</span>
-                <span class="text-[9px] text-slate-500 leading-tight">Removes ghosting artifacts frame-by-frame</span>
-              </div>
-            </label>
+            <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-neon-cyan/5 border border-neon-cyan/10">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" v-model="settings.aiRefine" class="sr-only peer" />
+                <div class="w-9 h-5 bg-white/5 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-neon-cyan"></div>
+                <span class="ml-2 text-[10px] font-bold text-slate-200 leading-tight">AI Refine</span>
+              </label>
+            </div>
 
             <button @click="runExport" class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all">
               <div class="flex items-center justify-center gap-1.5">
@@ -443,22 +444,6 @@ function reset() {
           <div class="neu-card rounded-xl p-3.5 sticky top-20 space-y-2.5">
             <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Actions</h2>
             <button @click="download" class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all">
-              <div class="flex items-center justify-center gap-1.5">
-                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
-              </div>
-            </button>
-            <button @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
-              <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-neon-purple"></iconify-icon>
-              <span>Adjust &amp; re-run</span>
-            </button>
-            <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
-              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
-              <span>{{ t('processAnother') }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
               <div class="flex items-center justify-center gap-1.5">
                 <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
               </div>
