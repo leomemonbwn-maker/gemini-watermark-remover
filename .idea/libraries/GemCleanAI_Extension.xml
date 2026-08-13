@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="GemCleanAI-Extension">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/GemCleanAI-Extension.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
