@@ -37,6 +37,10 @@ let maskCtx = null;
 let isDrawing = false;
 let lastX = -1, lastY = -1;
 
+// Reactive version counter — incremented every time the mask canvas changes
+// so that the `hasMask` computed is properly invalidated by Vue.
+const maskVersion = ref(0);
+
 // Undo & Redo stacks
 const undoStack = ref([]);
 const redoStack = ref([]);
@@ -46,6 +50,8 @@ const maxUndo = 25;
 const displayScale = ref(1);
 
 const hasMask = computed(() => {
+  // Read the reactive version counter so Vue re-evaluates when the mask changes
+  void maskVersion.value;
   if (!maskCtx) return false;
   const data = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data;
   for (let i = 3; i < data.length; i += 4) {
@@ -145,6 +151,7 @@ function undo() {
   const prevState = undoStack.value.pop();
   const imgData = new ImageData(prevState, maskCanvas.width, maskCanvas.height);
   maskCtx.putImageData(imgData, 0, 0);
+  maskVersion.value++;
   renderOverlay();
 }
 
@@ -157,6 +164,7 @@ function redo() {
   const nextState = redoStack.value.pop();
   const imgData = new ImageData(nextState, maskCanvas.width, maskCanvas.height);
   maskCtx.putImageData(imgData, 0, 0);
+  maskVersion.value++;
   renderOverlay();
 }
 
@@ -190,6 +198,7 @@ function drawStroke(x, y) {
 
   lastX = x;
   lastY = y;
+  maskVersion.value++;
   renderOverlay();
 }
 
@@ -283,6 +292,7 @@ function clearMask() {
   saveMaskState();
   maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
   detectedRegions.value = [];
+  maskVersion.value++;
   renderOverlay();
 }
 
@@ -314,6 +324,7 @@ async function autoDetect() {
           }
         }
       }
+      maskVersion.value++;
       renderOverlay();
     }
   } catch (err) {

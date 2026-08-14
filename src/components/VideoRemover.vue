@@ -25,12 +25,23 @@ function getEngine() {
 }
 
 const fileInput = ref(null);
+const batchFileInput = ref(null);
 const dragOver = ref(false);
 const supported = ref(true);
 const status = ref('idle'); // idle | loading | preview | processing | done | error
 const progress = ref(0);
 const errorMsg = ref('');
 
+// Batch processing state
+const items = ref([]); // { file, name, displayName, status, originalUrl, resultUrl, blob, progress, errorMsg, dimensions }
+const batchProcessing = ref(false);
+const batchProgress = ref({ current: 0, total: 0 });
+const MAX_BATCH_VIDEOS = 10;
+
+const hasResults = computed(() => items.value.length > 0);
+const doneItems = computed(() => items.value.filter(i => i.status === 'done'));
+
+// Single video state (for advanced/brush modes)
 const originalUrl = ref('');
 const resultUrl = ref('');
 const downloadName = ref('clean_video.mp4');
@@ -62,7 +73,7 @@ watch(presetId, () => {
   Object.assign(settings, currentPreset.value.settings);
 });
 
-// Preview state
+// Preview state (for advanced/single mode)
 const frame = ref(null);
 const base = ref(null);
 const bgImg = ref(null);
@@ -75,34 +86,117 @@ onMounted(async () => {
 });
 
 function openPicker() { fileInput.value?.click(); }
+function openBatchPicker() { batchFileInput.value?.click(); }
 function onDrop(e) { dragOver.value = false; handleFiles(e.dataTransfer.files); }
 function onChange(e) { handleFiles(e.target.files); }
 
-async function handleFiles(fileList) {
-  const file = Array.from(fileList).find((f) => f.type.startsWith('video/'));
-  if (!file) return;
-  reset();
-  currentFile = file;
-  fileName.value = file.name;
-  status.value = 'loading';
+function onBatchChange(e) {
+  const files = e.target.files;
+  if (files && files.length) {
+    handleFiles(files, true);
+  }
+  if (batchFileInput.value) batchFileInput.value.value = '';
+}
+
+async function handleFiles(fileList, appendMode = false) {
+  let valid = Array.from(fileList).filter((f) => f.type.startsWith('video/'));
+  if (!valid.length) return;
+
+  // Brush mode: single video only
+  if (videoMode.value === 'brush') {
+    handleBrushVideo(valid);
+    return;
+  }
+
+  // Advanced mode: single video with tuner
+  if (advanced.value && !appendMode) {
+    const file = valid[0];
+    reset();
+    currentFile = file;
+    fileName.value = file.name;
+    status.value = 'loading';
+
+    try {
+      engine = await getEngine();
+      const f = await grabPreviewFrame(file);
+      frame.value = f;
+      displayDimensions.value = `${f.width}×${f.height}`;
+      base.value = engine.getVeoWatermark(f.width, f.height);
+      bgImg.value = engine.sparkleImage;
+      status.value = 'preview';
+    } catch (e) {
+      console.error(e);
+      fail(e?.message || 'Could not read this video.');
+    }
+    return;
+  }
+
+  // Batch sparkle mode
+  if (valid.length > MAX_BATCH_VIDEOS) {
+    valid = valid.slice(0, MAX_BATCH_VIDEOS);
+  }
+
+  if (!appendMode) {
+    reset();
+  }
 
   try {
     engine = await getEngine();
-    const f = await grabPreviewFrame(file);
-    frame.value = f;
-    displayDimensions.value = `${f.width}×${f.height}`;
-    base.value = engine.getVeoWatermark(f.width, f.height);
-    bgImg.value = engine.sparkleImage;
+  } catch {
+    alert('Error: video engine could not be loaded.');
+    return;
+  }
 
-    if (advanced.value) {
-      status.value = 'preview';
-    } else {
-      // Auto-process like images
-      runExport();
+  batchProcessing.value = true;
+  batchProgress.value = { current: 0, total: (appendMode ? batchProgress.value.total : 0) + valid.length };
+
+  for (const file of valid) {
+    const idx = items.value.push({
+      file,
+      name: file.name,
+      displayName: file.name.replace(/\.[^/.]+$/, '').slice(0, 24),
+      status: 'processing',
+      originalUrl: '',
+      resultUrl: '',
+      blob: null,
+      progress: 0,
+      errorMsg: '',
+      dimensions: '',
+    }) - 1;
+    const item = items.value[idx];
+
+    try {
+      await new Promise(r => setTimeout(r, 150)); // let UI update
+
+      const result = await engine.process(file, {
+        ...settings,
+        onProgress: (p) => {
+          item.progress = p.progress ?? p;
+        },
+      });
+
+      item.status = 'done';
+      item.originalUrl = result.originalUrl || URL.createObjectURL(file);
+      item.resultUrl = result.url || URL.createObjectURL(result.blob);
+      item.blob = result.blob;
+      item.dimensions = `${result.width}×${result.height}`;
+    } catch (err) {
+      console.error(err);
+      item.status = 'error';
+      item.errorMsg = err?.message || 'Failed to process video.';
     }
-  } catch (e) {
-    console.error(e);
-    fail(e?.message || 'Could not read this video.');
+
+    batchProgress.value.current++;
+  }
+
+  batchProcessing.value = false;
+
+  // Send notification if supported
+  if ('Notification' in window && Notification.permission === 'granted' && doneItems.value.length > 0) {
+    new Notification('GemClean AI', {
+      body: `${doneItems.value.length} video(s) processed! 🎬`,
+      icon: '/assets/mascot-logo.png',
+    });
   }
 }
 
@@ -151,6 +245,7 @@ function resetSettings() {
   Object.assign(settings, currentPreset.value.settings);
 }
 
+// Single video export (for advanced/tuner mode)
 async function runExport() {
   if (!currentFile) return;
   status.value = 'processing';
@@ -166,7 +261,23 @@ async function runExport() {
     originalUrl.value = result.originalUrl || URL.createObjectURL(currentFile);
     resultUrl.value = result.url || URL.createObjectURL(result.blob);
     downloadName.value = `clean_${currentFile.name.replace(/\.[^/.]+$/, '')}.mp4`;
-    status.value = 'done';
+    displayDimensions.value = `${result.width}×${result.height}`;
+
+    // Add to items for consistent result UI
+    items.value.push({
+      file: currentFile,
+      name: currentFile.name,
+      displayName: currentFile.name.replace(/\.[^/.]+$/, '').slice(0, 24),
+      status: 'done',
+      originalUrl: originalUrl.value,
+      resultUrl: resultUrl.value,
+      blob: result.blob,
+      progress: 1,
+      errorMsg: '',
+      dimensions: displayDimensions.value,
+    });
+
+    status.value = 'idle'; // let items array drive the UI
 
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('GemClean AI', {
@@ -182,6 +293,20 @@ async function runExport() {
 
 function backToPreview() {
   status.value = 'preview';
+  // Remove the last item that was added by runExport
+  if (items.value.length > 0) {
+    const last = items.value.pop();
+    if (last.originalUrl) URL.revokeObjectURL(last.originalUrl);
+    if (last.resultUrl) URL.revokeObjectURL(last.resultUrl);
+  }
+}
+
+function downloadItem(item) {
+  if (!item.resultUrl) return;
+  const a = document.createElement('a');
+  a.href = item.resultUrl;
+  a.download = `gemclean_${(item.name || 'video').replace(/\.[^/.]+$/, '')}.mp4`;
+  a.click();
 }
 
 function download() {
@@ -192,16 +317,50 @@ function download() {
   a.click();
 }
 
+async function downloadAll() {
+  const done = doneItems.value;
+  if (!done.length) return;
+  const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+  const zip = new JSZip();
+
+  for (const item of done) {
+    let blob = item.blob;
+    if (!blob && item.resultUrl) {
+      try {
+        const res = await fetch(item.resultUrl);
+        blob = await res.blob();
+      } catch { continue; }
+    }
+    if (blob) {
+      const cleanBaseName = (item.name || 'clean_video').replace(/\.[^/.]+$/, '');
+      zip.file(`gemclean_${cleanBaseName}.mp4`, blob);
+    }
+  }
+
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gemclean_videos_${Date.now()}.zip`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function openDonate() {
   window.dispatchEvent(new CustomEvent('open-donate'));
 }
 
-async function shareVideo() {
-  if (!resultUrl.value || !navigator.share) return;
+async function shareVideo(item) {
+  const url = item?.resultUrl || resultUrl.value;
+  const name = item ? `gemclean_${item.name.replace(/\.[^/.]+$/, '')}.mp4` : downloadName.value;
+  if (!url || !navigator.share) return;
   try {
-    const res = await fetch(resultUrl.value);
-    const blob = await res.blob();
-    const file = new File([blob], downloadName.value, { type: 'video/mp4' });
+    let blob = item?.blob;
+    if (!blob) {
+      const res = await fetch(url);
+      blob = await res.blob();
+    }
+    const file = new File([blob], name, { type: 'video/mp4' });
     await navigator.share({
       title: 'GemClean AI - Cleaned Video',
       text: 'Watermark removed from video! 🎬',
@@ -220,6 +379,15 @@ function fail(msg) {
 }
 
 function reset() {
+  // Revoke URLs from items
+  items.value.forEach(i => {
+    if (i.originalUrl) URL.revokeObjectURL(i.originalUrl);
+    if (i.resultUrl) URL.revokeObjectURL(i.resultUrl);
+  });
+  items.value = [];
+  batchProcessing.value = false;
+  batchProgress.value = { current: 0, total: 0 };
+
   if (originalUrl.value) URL.revokeObjectURL(originalUrl.value);
   if (resultUrl.value) URL.revokeObjectURL(resultUrl.value);
   originalUrl.value = '';
@@ -236,6 +404,7 @@ function reset() {
   brushFrameSrc.value = '';
   brushMaskArr.value = null;
   if (fileInput.value) fileInput.value.value = '';
+  if (batchFileInput.value) batchFileInput.value.value = '';
 }
 
 // ── Brush Mode for Video ─────────────────────────────────────────────
@@ -452,7 +621,7 @@ function cancelBrushMask() {
 
     <!-- Upload (Compact) -->
     <div
-      v-else-if="status === 'idle'"
+      v-else-if="status === 'idle' && !hasResults"
       class="group relative flex flex-col items-center justify-center w-full min-h-[11rem] sm:min-h-[13rem] py-5 sm:py-7 px-4 rounded-2xl neu-dropzone transition-all cursor-pointer select-none"
       :class="dragOver ? '!border-neon-purple scale-[1.01]' : ''"
       role="button" tabindex="0" aria-label="Upload a video"
@@ -505,10 +674,10 @@ function cancelBrushMask() {
         </div>
         
         <p class="mb-0.5 text-xs sm:text-sm font-bold text-slate-100 group-hover:text-neon-purple transition-colors tracking-tight px-2">
-          {{ videoMode === 'brush' ? 'Upload video to mark watermark area' : 'Click to upload or drag a Gemini Veo video' }}
+          {{ videoMode === 'brush' ? 'Upload video to mark watermark area' : 'Click to upload or drag Veo videos' }}
         </p>
         <p class="text-[11px] text-slate-500">
-          {{ videoMode === 'brush' ? 'Draw mask on first frame · Applied to all frames' : 'MP4, WebM, MOV · Lossless audio preservation' }}
+          {{ videoMode === 'brush' ? 'Draw mask on first frame · Applied to all frames' : 'MP4, WebM, MOV · Batch processing up to 10 videos' }}
         </p>
         
         <label v-if="videoMode === 'sparkle'" class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 cursor-pointer" @click.stop>
@@ -520,10 +689,44 @@ function cancelBrushMask() {
         ref="fileInput"
         type="file"
         accept="video/*"
+        :multiple="videoMode === 'sparkle' && !advanced"
         class="hidden"
         aria-label="Video file input"
         @change="videoMode === 'brush' ? handleBrushVideo($event.target.files) : onChange($event)"
       />
+      <!-- Hidden batch file input for gallery multi-select -->
+      <input
+        ref="batchFileInput"
+        type="file"
+        accept="video/*"
+        multiple
+        class="hidden"
+        aria-label="Batch gallery video input"
+        @change="onBatchChange($event)"
+      />
+    </div>
+
+    <!-- Mobile Gallery Batch Upload Button -->
+    <div v-if="!hasResults && status === 'idle' && videoMode === 'sparkle' && !advanced" class="sm:hidden mt-3 space-y-2">
+      <button
+        @click.stop="openBatchPicker"
+        class="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl font-bold text-sm text-white transition-all active:scale-[0.98]"
+        style="background: linear-gradient(135deg, rgba(139,92,246,0.25) 0%, rgba(236,72,153,0.25) 50%, rgba(34,211,238,0.25) 100%); border: 1px solid rgba(139,92,246,0.3); box-shadow: 0 0 20px rgba(139,92,246,0.1), inset 0 1px 0 rgba(255,255,255,0.05);"
+      >
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-neon-purple/20 text-neon-purple">
+          <iconify-icon icon="ph:film-strip-bold" width="20"></iconify-icon>
+        </span>
+        <span class="flex flex-col items-start">
+          <span class="text-xs font-extrabold tracking-tight">📱 Gallery Batch Upload</span>
+          <span class="text-[10px] font-medium text-slate-400">Select up to 10 videos from gallery</span>
+        </span>
+        <iconify-icon icon="ph:caret-right-bold" width="16" class="text-slate-400 ml-auto"></iconify-icon>
+      </button>
+
+      <p class="text-center text-[10px] text-slate-500 font-medium">
+        <iconify-icon icon="ph:lightbulb-bold" width="11" class="text-neon-cyan align-middle mr-0.5"></iconify-icon>
+        Long press in gallery to multi-select videos
+      </p>
     </div>
 
     <!-- Loading Preview Frame -->
@@ -532,7 +735,7 @@ function cancelBrushMask() {
       <p class="font-bold text-neon-cyan text-xs">Loading video frame…</p>
     </div>
 
-    <!-- Preview & Controls -->
+    <!-- Preview & Controls (Advanced single-video mode) -->
     <div v-else-if="status === 'preview'" class="animate-fade-in">
       <div class="flex flex-col lg:flex-row gap-3.5 sm:gap-5">
         <div class="flex-1 min-w-0">
@@ -591,8 +794,8 @@ function cancelBrushMask() {
       </div>
     </div>
 
-    <!-- Processing -->
-    <div v-else-if="status === 'processing'" class="flex flex-col items-center justify-center w-full h-44 px-4 sm:px-6">
+    <!-- Single Video Processing (brush mode) -->
+    <div v-else-if="status === 'processing' && !hasResults" class="flex flex-col items-center justify-center w-full h-44 px-4 sm:px-6">
       <div class="w-10 h-10 rounded-full border-2 border-neon-pink/20 border-t-neon-pink border-r-neon-cyan animate-spin mb-3"></div>
       <p class="font-bold text-neon-pink mb-2 text-xs sm:text-sm">Cleaning &amp; re-encoding…</p>
       <div class="w-full max-w-sm h-2 rounded-full neu-inset overflow-hidden">
@@ -602,7 +805,7 @@ function cancelBrushMask() {
     </div>
 
     <!-- Error -->
-    <div v-else-if="status === 'error'" class="flex flex-col items-center justify-center w-full min-h-44 py-6 text-center px-4">
+    <div v-else-if="status === 'error' && !hasResults" class="flex flex-col items-center justify-center w-full min-h-44 py-6 text-center px-4">
       <iconify-icon icon="ph:warning-circle-bold" width="30" class="text-red-500 mb-1.5"></iconify-icon>
       <p class="font-bold text-red-400 text-xs sm:text-sm">{{ errorMsg }}</p>
       <button @click="reset" class="btn-cyber-secondary btn-micro-pop !w-auto mt-3 text-xs py-1.5 px-3">
@@ -611,8 +814,8 @@ function cancelBrushMask() {
       </button>
     </div>
 
-    <!-- Done (Result Card) -->
-    <div v-else class="text-left animate-fade-in">
+    <!-- Brush Mode Done (single video result) -->
+    <div v-else-if="status === 'done' && !hasResults" class="text-left animate-fade-in">
       <div class="flex flex-col lg:flex-row gap-3.5 sm:gap-5">
         <div class="flex-1 space-y-3 sm:space-y-4 min-w-0">
           <div class="p-3 sm:p-3.5 neu-card rounded-xl space-y-2.5">
@@ -620,15 +823,14 @@ function cancelBrushMask() {
             <div class="flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-1.5">
               <div class="flex items-center gap-2 overflow-hidden">
                 <h3 class="font-bold text-white text-xs truncate max-w-[180px] sm:max-w-xs">{{ fileName }}</h3>
-                <span class="text-[9px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
-                  {{ settings.aiRefine ? '✨ AI Refined' : '✨ Auto' }}
+                <span class="text-[9px] font-mono font-bold text-neon-purple bg-neon-purple/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
+                  🎨 Brush Inpaint
                 </span>
               </div>
             </div>
 
             <!-- Video Side-by-Side -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              <!-- Original -->
               <div class="neu-card rounded-lg overflow-hidden relative">
                 <div class="px-2.5 py-1 border-b border-white/5 flex justify-between items-center bg-white/2">
                   <span class="font-bold text-slate-300 text-[10px]">Original</span>
@@ -639,7 +841,6 @@ function cancelBrushMask() {
                 </div>
               </div>
 
-              <!-- Cleaned -->
               <div class="neu-card rounded-lg overflow-hidden border-neon-cyan/20">
                 <div class="px-2.5 py-1 border-b border-neon-cyan/10 bg-neon-cyan/5 flex justify-between items-center">
                   <span class="font-bold text-neon-cyan text-[10px]">Cleaned</span>
@@ -653,16 +854,7 @@ function cancelBrushMask() {
 
             <!-- Controls Row -->
             <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/5 text-xs">
-              <button
-                @click="backToPreview(); settings.aiRefine = !settings.aiRefine;"
-                class="btn-micro-pop neu-pill px-2.5 py-1.5 font-bold text-slate-200 hover:text-neon-cyan rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
-              >
-                <iconify-icon icon="ph:magic-wand-bold" class="text-neon-cyan" width="13"></iconify-icon>
-                <span>{{ settings.aiRefine ? 'Disable Refine' : 'AI Refine' }}</span>
-              </button>
-
               <div class="flex-1"></div>
-
               <button
                 @click="download"
                 class="btn-micro-pop flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-neon-cyan hover:bg-neon-cyan/90 rounded-lg transition-all min-h-[34px]"
@@ -670,16 +862,14 @@ function cancelBrushMask() {
                 <iconify-icon icon="ph:download-simple-bold" width="13"></iconify-icon>
                 <span>Download</span>
               </button>
-
               <button
                 v-if="canShare"
-                @click="shareVideo"
+                @click="shareVideo(null)"
                 class="btn-micro-pop neu-pill p-1.5 text-slate-200 hover:text-neon-green rounded-lg transition-all flex items-center justify-center min-w-[34px] min-h-[34px]"
                 title="Share"
               >
                 <iconify-icon icon="ph:share-network-bold" width="14"></iconify-icon>
               </button>
-
               <button
                 @click="openDonate"
                 class="btn-micro-pop neu-pill px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-neon-pink rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
@@ -692,7 +882,7 @@ function cancelBrushMask() {
           </div>
         </div>
 
-        <!-- Desktop Action Sidebar -->
+        <!-- Desktop Sidebar -->
         <div class="hidden lg:block w-56 flex-shrink-0">
           <div class="neu-card rounded-xl p-3.5 sticky top-20 space-y-2.5">
             <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Actions</h2>
@@ -700,10 +890,6 @@ function cancelBrushMask() {
               <div class="flex items-center justify-center gap-1.5">
                 <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
               </div>
-            </button>
-            <button @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
-              <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-neon-purple"></iconify-icon>
-              <span>Adjust &amp; re-run</span>
             </button>
             <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
               <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
@@ -721,11 +907,217 @@ function cancelBrushMask() {
               <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download MP4
             </div>
           </button>
-          <button @click="backToPreview" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
-            <iconify-icon icon="ph:sliders-horizontal-bold" width="14" class="text-neon-purple"></iconify-icon>
-            <span>Adjust &amp; re-run</span>
-          </button>
           <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2">
+            <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
+            <span>{{ t('processAnother') }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ Batch Results (Sparkle mode) ═══════ -->
+    <div v-else-if="hasResults" class="text-left animate-fade-in">
+      <!-- Batch Progress Bar (shows during batch processing) -->
+      <div v-if="batchProcessing && batchProgress.total > 1" class="mb-3 neu-card rounded-xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded-full border-2 border-neon-purple/30 border-t-neon-purple animate-spin"></div>
+            <span class="text-xs font-bold text-white">Batch Processing Videos...</span>
+          </div>
+          <span class="text-[11px] font-mono font-bold text-neon-cyan">
+            {{ batchProgress.current }} / {{ batchProgress.total }}
+          </span>
+        </div>
+        <div class="w-full h-1.5 rounded-full neu-inset overflow-hidden">
+          <div
+            class="h-full bg-gradient-to-r from-neon-purple via-neon-pink to-neon-cyan rounded-full transition-all duration-300"
+            :style="{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }"
+          ></div>
+        </div>
+        <p class="text-[10px] text-slate-500 mt-1 font-mono text-center">
+          Processing {{ batchProgress.total }} videos · Heavy computation may take a while
+        </p>
+      </div>
+
+      <div class="flex flex-col lg:flex-row gap-3.5 sm:gap-5">
+        <div class="flex-1 space-y-3 sm:space-y-4 min-w-0">
+          <div
+            v-for="(item, i) in items"
+            :key="i"
+            class="p-3 sm:p-3.5 neu-card rounded-xl space-y-2.5"
+          >
+            <!-- Card Header -->
+            <div class="flex items-center justify-between border-b border-white/5 pb-2 flex-wrap gap-1.5">
+              <div class="flex items-center gap-2 overflow-hidden">
+                <h3 class="font-bold text-white text-xs truncate max-w-[180px] sm:max-w-xs">{{ item.displayName }}</h3>
+                <span v-if="item.status === 'done'" class="text-[9px] font-mono font-bold text-neon-cyan bg-neon-cyan/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
+                  ✨ Auto · {{ item.dimensions }}
+                </span>
+                <span v-else-if="item.status === 'processing'" class="text-[9px] font-mono font-bold text-neon-pink bg-neon-pink/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
+                  ⏳ Processing
+                </span>
+                <span v-else-if="item.status === 'error'" class="text-[9px] font-mono font-bold text-red-400 bg-red-400/10 px-1.5 py-0.2 rounded-full flex-shrink-0">
+                  ❌ Error
+                </span>
+              </div>
+            </div>
+
+            <!-- Per-Item Progress Bar (when processing) -->
+            <div v-if="item.status === 'processing'" class="space-y-2">
+              <div class="w-full h-1.5 rounded-full neu-inset overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan transition-all duration-200 rounded-full"
+                  :style="{ width: `${Math.round(item.progress * 100)}%` }"
+                ></div>
+              </div>
+              <p class="text-[10px] text-slate-400 font-mono text-center">{{ Math.round(item.progress * 100) }}% — cleaning &amp; re-encoding…</p>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="item.status === 'error'" class="flex items-center gap-2 p-2 rounded-lg bg-red-500/5 border border-red-500/15">
+              <iconify-icon icon="ph:warning-circle-bold" width="14" class="text-red-400 flex-shrink-0"></iconify-icon>
+              <p class="text-[11px] text-red-400 font-medium">{{ item.errorMsg }}</p>
+            </div>
+
+            <!-- Video Side-by-Side (when done) -->
+            <div v-if="item.status === 'done'" class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+              <!-- Original -->
+              <div class="neu-card rounded-lg overflow-hidden relative">
+                <div class="px-2.5 py-1 border-b border-white/5 flex justify-between items-center bg-white/2">
+                  <span class="font-bold text-slate-300 text-[10px]">Original</span>
+                  <span class="text-[9px] font-mono text-slate-400">{{ item.dimensions }}</span>
+                </div>
+                <div class="p-1.5 checker flex items-center justify-center">
+                  <video :src="item.originalUrl" controls playsinline class="max-h-48 sm:max-h-56 w-full object-contain rounded"></video>
+                </div>
+              </div>
+
+              <!-- Cleaned -->
+              <div class="neu-card rounded-lg overflow-hidden border-neon-cyan/20">
+                <div class="px-2.5 py-1 border-b border-neon-cyan/10 bg-neon-cyan/5 flex justify-between items-center">
+                  <span class="font-bold text-neon-cyan text-[10px]">Cleaned</span>
+                  <span class="text-[9px] font-mono text-neon-cyan font-bold">100% Lossless</span>
+                </div>
+                <div class="p-1.5 checker flex justify-center">
+                  <video :src="item.resultUrl" controls playsinline class="max-h-48 sm:max-h-56 w-full object-contain rounded"></video>
+                </div>
+              </div>
+            </div>
+
+            <!-- Per-Item Actions (when done) -->
+            <div v-if="item.status === 'done'" class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/5 text-xs">
+              <div class="flex-1"></div>
+
+              <button
+                @click="downloadItem(item)"
+                class="btn-micro-pop flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-neon-cyan hover:bg-neon-cyan/90 rounded-lg transition-all min-h-[34px]"
+              >
+                <iconify-icon icon="ph:download-simple-bold" width="13"></iconify-icon>
+                <span>Download</span>
+              </button>
+
+              <button
+                v-if="canShare"
+                @click="shareVideo(item)"
+                class="btn-micro-pop neu-pill p-1.5 text-slate-200 hover:text-neon-green rounded-lg transition-all flex items-center justify-center min-w-[34px] min-h-[34px]"
+                title="Share"
+              >
+                <iconify-icon icon="ph:share-network-bold" width="14"></iconify-icon>
+              </button>
+
+              <button
+                @click="openDonate"
+                class="btn-micro-pop neu-pill px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-neon-pink rounded-lg transition-all flex items-center gap-1 min-h-[34px]"
+                title="Support this project"
+              >
+                <iconify-icon icon="ph:heart-bold" width="13" class="text-neon-pink"></iconify-icon>
+                <span>Donate</span>
+              </button>
+            </div>
+
+            <!-- Metadata Strip Badge -->
+            <div v-if="item.status === 'done'" class="flex flex-wrap items-center justify-end gap-2 pt-1">
+              <div class="flex items-center gap-1 text-[9px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded-md">
+                <iconify-icon icon="ph:shield-check-bold" class="text-neon-cyan" width="11"></iconify-icon>
+                <span>Audio Preserved · EXIF Stripped</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop Action Sidebar -->
+        <div class="hidden lg:block w-60 flex-shrink-0">
+          <div class="neu-card rounded-xl p-3.5 sticky top-20 space-y-3">
+            <h2 class="font-bold text-white text-xs uppercase tracking-wider text-slate-400">Export Hub</h2>
+
+            <button
+              v-if="doneItems.length === 1"
+              @click="downloadItem(doneItems[0])"
+              class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
+            >
+              <div class="flex items-center justify-center gap-1.5">
+                <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download Clean Video
+              </div>
+            </button>
+            <button
+              v-if="doneItems.length > 1"
+              @click="downloadAll"
+              class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
+            >
+              <div class="flex items-center justify-center gap-1.5">
+                <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Export All ZIP ({{ doneItems.length }})
+              </div>
+            </button>
+
+            <div class="text-[10px] text-slate-400 space-y-1 pt-1 border-t border-white/5">
+              <div class="flex items-center gap-1 text-neon-cyan font-bold">
+                <iconify-icon icon="ph:lock-key-bold"></iconify-icon>
+                <span>Zero Server Uploads</span>
+              </div>
+              <p class="text-[9px] text-slate-500">Processed 100% locally in browser memory.</p>
+            </div>
+
+            <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2 w-full">
+              <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
+              <span>{{ t('processAnother') }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Action Bar -->
+      <div class="lg:hidden mt-3">
+        <div class="neu-card rounded-xl p-3 space-y-2">
+          <button
+            v-if="doneItems.length === 1"
+            @click="downloadItem(doneItems[0])"
+            class="btn-neon-cyan group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
+          >
+            <div class="flex items-center justify-center gap-1.5">
+              <iconify-icon icon="ph:download-simple-bold" width="16"></iconify-icon> Download Clean Video
+            </div>
+          </button>
+          <button
+            v-if="doneItems.length > 1"
+            @click="downloadAll"
+            class="btn-neon group w-full py-2.5 rounded-lg font-bold text-white text-xs transition-all"
+          >
+            <div class="flex items-center justify-center gap-1.5">
+              <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Download All ZIP ({{ doneItems.length }})
+            </div>
+          </button>
+
+          <!-- Add More Videos (Mobile) -->
+          <button
+            v-if="!batchProcessing"
+            @click="openBatchPicker"
+            class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-xs transition-all border border-dashed border-neon-purple/30 text-neon-purple hover:bg-neon-purple/5 active:scale-[0.98]"
+          >
+            <iconify-icon icon="ph:plus-circle-bold" width="16"></iconify-icon>
+            <span>Add More Videos</span>
+          </button>
+
+          <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2 w-full">
             <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
             <span>{{ t('processAnother') }}</span>
           </button>
