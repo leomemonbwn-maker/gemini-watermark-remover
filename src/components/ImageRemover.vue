@@ -101,12 +101,18 @@ function getEngine() {
 }
 
 const fileInput = ref(null);
+const batchFileInput = ref(null);
 const dragOver = ref(false);
 const items = ref([]); // { file, name, displayName, status, originalSrc, url, blob, width, height, config, configs, viewMode, sliderPos, format }
 const copiedIdx = ref(-1);
 const refiningIdx = ref(-1);
+const batchProcessing = ref(false);
+const batchProgress = ref({ current: 0, total: 0 });
+
+const MAX_BATCH_FILES = 20;
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
+const processingItems = computed(() => items.value.filter((i) => i.status === 'processing'));
 const hasResults = computed(() => items.value.length > 0);
 
 async function copyToClipboard(item, idx) {
@@ -272,6 +278,17 @@ function openPicker() {
   fileInput.value?.click();
 }
 
+function openBatchPicker() {
+  batchFileInput.value?.click();
+}
+
+function onBatchChange(e) {
+  const files = e.target.files;
+  if (files && files.length) {
+    handleFiles(files);
+  }
+}
+
 function onDrop(e) {
   dragOver.value = false;
   handleFiles(e.dataTransfer.files);
@@ -281,11 +298,18 @@ function onChange(e) {
   handleFiles(e.target.files);
 }
 
-async function handleFiles(fileList) {
-  const valid = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+async function handleFiles(fileList, appendMode = false) {
+  let valid = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
   if (!valid.length) return;
 
-  reset();
+  // Enforce max batch limit
+  if (valid.length > MAX_BATCH_FILES) {
+    valid = valid.slice(0, MAX_BATCH_FILES);
+  }
+
+  if (!appendMode) {
+    reset();
+  }
 
   let engine;
   try {
@@ -295,10 +319,13 @@ async function handleFiles(fileList) {
     return;
   }
 
-  if (advanced.value) {
+  if (advanced.value && !appendMode) {
     await startTuner(valid[0], engine);
     return;
   }
+
+  batchProcessing.value = true;
+  batchProgress.value = { current: 0, total: valid.length };
 
   for (const file of valid) {
     const idx =
@@ -346,7 +373,25 @@ async function handleFiles(fileList) {
       console.error(err);
       item.status = 'error';
     }
+
+    batchProgress.value.current++;
   }
+
+  batchProcessing.value = false;
+}
+
+// Append more files to existing batch
+function addMoreFiles() {
+  batchFileInput.value?.click();
+}
+
+function onAddMoreChange(e) {
+  const files = e.target.files;
+  if (files && files.length) {
+    handleFiles(files, true);
+  }
+  // Reset input so same files can be selected again
+  if (batchFileInput.value) batchFileInput.value.value = '';
 }
 
 async function handleImageClick(e, item) {
@@ -654,6 +699,8 @@ function reset() {
     if (i.originalSrc) URL.revokeObjectURL(i.originalSrc);
   });
   items.value = [];
+  batchProcessing.value = false;
+  batchProgress.value = { current: 0, total: 0 };
   if (tunerOrigSrc.value) URL.revokeObjectURL(tunerOrigSrc.value);
   tunerOrigSrc.value = '';
   tunerActive.value = false;
@@ -665,6 +712,7 @@ function reset() {
   brushImageData.value = null;
   brushFile.value = null;
   if (fileInput.value) fileInput.value.value = '';
+  if (batchFileInput.value) batchFileInput.value.value = '';
 }
 </script>
 
@@ -829,10 +877,66 @@ function reset() {
         aria-label="File input"
         @change="removalMode === 'brush' ? handleBrushFiles($event.target.files) : onChange($event)"
       />
+
+      <!-- Hidden batch file input for gallery multi-select -->
+      <input
+        ref="batchFileInput"
+        type="file"
+        accept="image/*,.gif"
+        multiple
+        class="hidden"
+        aria-label="Batch gallery file input"
+        @change="onAddMoreChange($event)"
+      />
+    </div>
+
+    <!-- Mobile Gallery Batch Upload Button -->
+    <div v-if="!hasResults && removalMode === 'sparkle'" class="sm:hidden mt-3 space-y-2">
+      <button
+        @click.stop="openBatchPicker"
+        class="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl font-bold text-sm text-white transition-all active:scale-[0.98]"
+        style="background: linear-gradient(135deg, rgba(236,72,153,0.25) 0%, rgba(139,92,246,0.25) 50%, rgba(34,211,238,0.25) 100%); border: 1px solid rgba(236,72,153,0.3); box-shadow: 0 0 20px rgba(236,72,153,0.1), inset 0 1px 0 rgba(255,255,255,0.05);"
+      >
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-neon-pink/20 text-neon-pink">
+          <iconify-icon icon="ph:images-bold" width="20"></iconify-icon>
+        </span>
+        <span class="flex flex-col items-start">
+          <span class="text-xs font-extrabold tracking-tight">📱 Gallery Batch Upload</span>
+          <span class="text-[10px] font-medium text-slate-400">Select up to 20 photos from gallery</span>
+        </span>
+        <iconify-icon icon="ph:caret-right-bold" width="16" class="text-slate-400 ml-auto"></iconify-icon>
+      </button>
+
+      <p class="text-center text-[10px] text-slate-500 font-medium">
+        <iconify-icon icon="ph:lightbulb-bold" width="11" class="text-neon-cyan align-middle mr-0.5"></iconify-icon>
+        Long press in gallery to multi-select images
+      </p>
     </div>
 
     <!-- Results (Crisp & Well-Structured) -->
     <div v-else class="text-left animate-fade-in">
+      <!-- Batch Progress Bar (shows during batch processing) -->
+      <div v-if="batchProcessing && batchProgress.total > 1" class="mb-3 neu-card rounded-xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded-full border-2 border-neon-pink/30 border-t-neon-pink animate-spin"></div>
+            <span class="text-xs font-bold text-white">Batch Processing...</span>
+          </div>
+          <span class="text-[11px] font-mono font-bold text-neon-cyan">
+            {{ batchProgress.current }} / {{ batchProgress.total }}
+          </span>
+        </div>
+        <div class="w-full h-1.5 rounded-full neu-inset overflow-hidden">
+          <div
+            class="h-full bg-gradient-to-r from-neon-pink via-neon-purple to-neon-cyan rounded-full transition-all duration-300"
+            :style="{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }"
+          ></div>
+        </div>
+        <p class="text-[10px] text-slate-500 mt-1 font-mono text-center">
+          Processing {{ batchProgress.total }} images from gallery
+        </p>
+      </div>
+
       <div class="flex flex-col lg:flex-row gap-3.5 sm:gap-5">
         <div class="flex-1 space-y-3 sm:space-y-4 min-w-0">
           <div
@@ -1168,6 +1272,17 @@ function reset() {
               <iconify-icon icon="ph:file-zip-bold" width="16"></iconify-icon> Download All ZIP ({{ doneItems.length }})
             </div>
           </button>
+
+          <!-- Add More from Gallery (Mobile) -->
+          <button
+            v-if="!batchProcessing"
+            @click="openBatchPicker"
+            class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-xs transition-all border border-dashed border-neon-pink/30 text-neon-pink hover:bg-neon-pink/5 active:scale-[0.98]"
+          >
+            <iconify-icon icon="ph:plus-circle-bold" width="16"></iconify-icon>
+            <span>Add More from Gallery</span>
+          </button>
+
           <button @click="reset" class="btn-cyber-secondary btn-micro-pop text-xs py-2 w-full">
             <iconify-icon icon="ph:arrow-counter-clockwise-bold" width="15" class="text-neon-cyan"></iconify-icon>
             <span>{{ t('processAnother') }}</span>
